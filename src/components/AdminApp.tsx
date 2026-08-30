@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, type FormEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   closestCenter,
@@ -38,12 +38,56 @@ const placeholderImage = "https://images.unsplash.com/photo-1558769132-cb1aea458
 const adminLanguages: Language[] = ["en", "ru"];
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
+const ADMIN_SESSION_KEY = "ana-styling-admin-session";
+const ADMIN_PASSWORD_HASH = "bf366af24016c4a9be8afd52f1fc371eb73837ea245bb71677544b1fe6692198";
 
 function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+async function hashPassword(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const hash = await hashPassword(password);
+
+    if (hash !== ADMIN_PASSWORD_HASH) {
+      setError("Wrong password. Please try again.");
+      return;
+    }
+
+    window.sessionStorage.setItem(ADMIN_SESSION_KEY, "unlocked");
+    setError("");
+    onUnlock();
+  }
+
+  return (
+    <main className="admin-login-shell">
+      <form className="admin-login-card" onSubmit={submitPassword}>
+        <p className="eyebrow">ANA STYLING</p>
+        <h1>Private Studio</h1>
+        <p>Enter the studio password to manage portfolio, services, publications, and site text.</p>
+        <label>
+          Password
+          <input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+        </label>
+        {error && <p className="admin-login-error" role="alert">{error}</p>}
+        <button className="button primary" type="submit">Enter Studio</button>
+        <Link href={pageHref("/")}>Back to website</Link>
+      </form>
+    </main>
+  );
+}
+
 export function AdminApp() {
+  const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
   const { data, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
@@ -60,6 +104,10 @@ export function AdminApp() {
   const items = useMemo(() => [...data.portfolioItems].sort((a, b) => a.order - b.order), [data.portfolioItems]);
   const editingItem = useMemo(() => data.portfolioItems.find((item) => item.id === editingId) ?? null, [data.portfolioItems, editingId]);
   const publications = useMemo(() => [...data.publications].sort((a, b) => a.order - b.order), [data.publications]);
+
+  if (!isUnlocked) {
+    return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
+  }
 
   function setItems(nextItems: PortfolioItem[]) {
     updateData((current) => ({ ...current, portfolioItems: nextItems.map((item, index) => ({ ...item, order: index + 1 })) }));
@@ -289,6 +337,10 @@ export function AdminApp() {
         ))}
         <button type="button" onClick={addItem}>Add new work</button>
         <Link href={pageHref("/")}>View website</Link>
+        <button type="button" onClick={() => {
+          window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+          setIsUnlocked(false);
+        }}>Lock studio</button>
       </aside>
 
       <section className="admin-content">

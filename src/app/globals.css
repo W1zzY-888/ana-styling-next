@@ -807,6 +807,73 @@ select:focus {
   min-height: 100svh;
 }
 
+.admin-login-shell {
+  align-items: center;
+  background:
+    radial-gradient(circle at 78% 20%, rgba(151, 29, 43, 0.14), transparent 28%),
+    linear-gradient(135deg, #f3f0e9 0%, #fffaf3 100%);
+  color: var(--ink);
+  display: grid;
+  min-height: 100svh;
+  padding: 24px;
+}
+
+.admin-login-card {
+  background: rgba(255, 252, 247, 0.92);
+  border: 1px solid rgba(151, 29, 43, 0.22);
+  box-shadow: 0 28px 80px rgba(85, 16, 24, 0.12);
+  display: grid;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 480px;
+  padding: clamp(28px, 5vw, 54px);
+  width: 100%;
+}
+
+.admin-login-card h1 {
+  color: var(--wine-dark);
+  font-size: clamp(3rem, 7vw, 5.8rem);
+  font-weight: 500;
+  line-height: 0.9;
+  margin: 0;
+}
+
+.admin-login-card p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.admin-login-card label {
+  color: var(--wine-dark);
+  display: grid;
+  font-size: 0.72rem;
+  gap: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.admin-login-card input {
+  background: #fff;
+  border: 1px solid rgba(151, 29, 43, 0.22);
+  color: var(--ink);
+  font-size: 1rem;
+  min-height: 54px;
+  padding: 0 16px;
+}
+
+.admin-login-card a {
+  color: var(--wine);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-login-error {
+  color: var(--wine);
+  font-size: 0.9rem;
+}
+
 .admin-sidebar {
   align-content: start;
   background: var(--ink);
