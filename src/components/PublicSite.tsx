@@ -13,13 +13,27 @@ import {
 import { useStudioData } from "@/hooks/useStudioData";
 import { text } from "@/lib/i18n";
 
-type PublicPage = "home" | "services" | "publications";
+type PublicPage = "home" | "services" | "portfolio" | "publications";
 
-const categories: Array<PortfolioCategory | "All"> = ["All", "Personal Styling", "Editorial", "Events", "Closet Edit"];
+const categories: Array<PortfolioCategory | "All"> = ["All", "Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const serviceGroups: ServiceGroup[] = ["Personal Styling", "Commercial Styling"];
 const languageKey = "ana-styling-language";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
+const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
+const contactServiceIds = new Set([
+  "event-styling",
+  "personal-shopping",
+  "photoshoot-styling",
+  "style-dna-online",
+  "travel-capsule",
+  "capsule-wardrobe-online",
+  "wardrobe-styling",
+  "wardrobe-detox",
+  "editorial-fashion-styling",
+  "lookbook-styling",
+  "brand-campaign-styling",
+]);
 const defaultSubjects: Record<Language, string> = {
   en: "I'd like to book a styling consultation",
   ru: "Я хочу забронировать стилистическую консультацию",
@@ -160,6 +174,9 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
 
   function navHref(index: number) {
     const ids = ["home", "about", "services", "portfolio", "publications", "contact"];
+    if (index === 2) return pageHref("/services/");
+    if (index === 3) return pageHref("/portfolio/");
+    if (index === 4) return pageHref("/publications/");
     return page === "home" ? `#${ids[index]}` : pageHref(`/#${ids[index]}`);
   }
 
@@ -253,6 +270,21 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           ))}
         </section>
       )}
+      {page === "portfolio" && (
+        <PortfolioSection
+          category={category}
+          galleryImages={galleryImages}
+          isFullPage
+          language={language}
+          setCategory={setCategory}
+          setLightboxIndex={setLightboxIndex}
+          setShowFullPortfolio={setShowFullPortfolio}
+          showFullPortfolio
+          t={t}
+          visiblePortfolio={visiblePortfolio}
+          openGalleryFromProject={openGalleryFromProject}
+        />
+      )}
       {page === "publications" && (
         <section id="publications" className="publications-section full-page-section">
           <div className="portfolio-title-row reveal">
@@ -270,7 +302,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           </div>
         </section>
       )}
-      {page !== "publications" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={data} />}
+      {page !== "publications" && page !== "portfolio" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={data} />}
       <Footer language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
         activeLightbox={activeLightbox}
@@ -312,14 +344,14 @@ function Hero({ data, language, t }: { data: ReturnType<typeof useStudioData>["d
     <section id="home" className="campaign-hero">
       <div className="hero-cover-word hero-cover-word-back">{t.heroTitle as string}</div>
       <figure className="campaign-image reveal">
-        <img loading="eager" src="https://images.unsplash.com/photo-1512316609839-ce289d3eba0a?auto=format&fit=crop&w=1500&q=88" alt={language === "en" ? "Fashion portrait for Ana Styling" : "Модный портрет Ana Styling"} />
+        <img loading="eager" src={assetSrc(data.content.homepage.heroImage)} alt={language === "en" ? "Ana Styling hero editorial" : "Главное фото Ana Styling"} />
       </figure>
       <div className="campaign-copy reveal">
         <p className="eyebrow">{t.heroRole as string}</p>
         <p>{text(data.content.homepage.positioning, language)}</p>
         <div className="cta-row">
           <StylistButton href="#contact">{t.workWithAna as string}</StylistButton>
-          <a className="text-link" href="#portfolio">{t.viewPortfolio as string} →</a>
+          <a className="text-link" href={pageHref("/portfolio/")}>{t.viewPortfolio as string} →</a>
         </div>
       </div>
     </section>
@@ -338,8 +370,7 @@ function About({ data, language, t }: { data: ReturnType<typeof useStudioData>["
         <h1>{text(data.content.about.headline, language)}</h1>
       </div>
       <div className="about-photo-stack reveal">
-        <img loading="lazy" src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1100&q=86" alt={language === "en" ? "Fashion styling portrait" : "Модный портрет"} />
-        <img loading="lazy" src="https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=800&q=84" alt={language === "en" ? "Wardrobe detail" : "Деталь гардероба"} />
+        <img loading="lazy" src={assetSrc("/ana-photos/about-ana.jpg")} alt={language === "en" ? "Portrait of Anastasia" : "Портрет Анастасии"} />
       </div>
       <div className="about-body reveal">
         {intro && <p className="about-intro">{intro}</p>}
@@ -357,7 +388,7 @@ function ServicesPreview({ labels, language, onContact, service }: { labels: Rec
         <h2>{labels.services as string}</h2>
       </div>
       <article className="featured-service reveal">
-        <figure><img loading="lazy" src={service.image} alt="" /></figure>
+        <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>
         <div>
           <span>01</span>
           <h3>{text(service.title, language)}</h3>
@@ -382,7 +413,7 @@ function ServiceSection({ group, labels, language, onContact, services }: { grou
         {services.map((service, index) => (
           <article className="runway-service reveal" key={service.id}>
             <span>{String(index + 1).padStart(2, "0")}</span>
-            <figure><img loading="lazy" src={service.image} alt="" /></figure>
+            <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>
             <div>
               <h4>{text(service.title, language)}</h4>
               <p>{text(service.description, language)}</p>
@@ -401,6 +432,7 @@ function ServiceSection({ group, labels, language, onContact, services }: { grou
 function PortfolioSection(props: {
   category: PortfolioCategory | "All";
   galleryImages: Array<{ image: PortfolioItem["images"][number]; item: PortfolioItem }>;
+  isFullPage?: boolean;
   language: Language;
   openGalleryFromProject: (item: PortfolioItem) => void;
   setCategory: (category: PortfolioCategory | "All") => void;
@@ -411,7 +443,7 @@ function PortfolioSection(props: {
   visiblePortfolio: PortfolioItem[];
 }) {
   return (
-    <section id="portfolio" className="fashion-portfolio">
+    <section id="portfolio" className={props.isFullPage ? "fashion-portfolio full-page-section" : "fashion-portfolio"}>
       <div className="portfolio-title-row reveal">
         <div>
           <p className="eyebrow">{props.t.portfolio as string}</p>
@@ -422,9 +454,9 @@ function PortfolioSection(props: {
         <div className="portfolio-preview reveal">
           {props.visiblePortfolio.slice(0, 2).map((item) => {
             const cover = getCoverImage(item);
-            return cover && <button key={item.id} type="button" onClick={() => props.openGalleryFromProject(item)}><img loading="lazy" src={cover.url} alt={cover.alt || text(item.title, props.language)} /></button>;
+            return cover && <button key={item.id} type="button" onClick={() => props.openGalleryFromProject(item)}><img loading="lazy" src={assetSrc(cover.url)} alt={cover.alt || text(item.title, props.language)} /></button>;
           })}
-          <button className="portfolio-open" type="button" onClick={() => props.setShowFullPortfolio(true)}>{props.t.viewPortfolio as string} →</button>
+          <a className="portfolio-open" href={pageHref("/portfolio/")}>{props.t.viewPortfolio as string} →</a>
         </div>
       )}
       {props.showFullPortfolio && (
@@ -439,7 +471,7 @@ function PortfolioSection(props: {
           <div className="portfolio-grid safe-editorial-grid">
             {props.galleryImages.map(({ image, item }, index) => (
               <button className="portfolio-tile reveal" key={`${item.id}-${image.id}`} type="button" onClick={() => props.setLightboxIndex(index)}>
-                <img loading="lazy" src={image.url} alt={image.alt || text(item.title, props.language)} />
+                <img loading="lazy" src={assetSrc(image.url)} alt={image.alt || text(item.title, props.language)} />
                 <div className="portfolio-overlay">
                   <span>{text(categoryLabels[item.category], props.language)}</span>
                   <h3>{text(item.title, props.language)}</h3>
@@ -476,10 +508,12 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
 }
 
 function Contact({ data, form, formNote, language, services, setForm, submitContact, t }: { data: ReturnType<typeof useStudioData>["data"]; form: { firstName: string; lastName: string; service: string; message: string }; formNote: string; language: Language; services: Service[]; setForm: (form: { firstName: string; lastName: string; service: string; message: string }) => void; submitContact: (event: FormEvent<HTMLFormElement>) => void; t: Record<string, string | string[]> }) {
+  const serviceOptions = services.filter((service) => contactServiceIds.has(service.id));
+
   return (
     <section id="contact" className="fashion-contact">
       <figure className="contact-image reveal">
-        <img loading="lazy" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=86" alt={language === "en" ? "Editorial fashion styling" : "Модная съёмка"} />
+        <img loading="lazy" src={assetSrc("/ana-photos/about-ana.jpg")} alt={language === "en" ? "Portrait of Anastasia" : "Портрет Анастасии"} />
       </figure>
       <div className="contact-copy reveal">
         <p className="eyebrow">{t.contact as string}</p>
@@ -494,7 +528,7 @@ function Contact({ data, form, formNote, language, services, setForm, submitCont
       <form className="contact-form reveal" onSubmit={submitContact} noValidate>
         <label>{t.firstName as string}<input autoComplete="given-name" value={form.firstName} onChange={(event) => setForm({ ...form, firstName: event.target.value })} /></label>
         <label>{t.lastName as string}<input autoComplete="family-name" value={form.lastName} onChange={(event) => setForm({ ...form, lastName: event.target.value })} /></label>
-        <label>{t.serviceField as string}<select value={form.service} onChange={(event) => setForm({ ...form, service: event.target.value })}><option value="">{t.selectService as string}</option>{services.map((service) => <option key={service.id} value={service.id}>{text(service.title, language)}</option>)}</select></label>
+        <label>{t.serviceField as string}<select value={form.service} onChange={(event) => setForm({ ...form, service: event.target.value })}><option value="">{t.selectService as string}</option>{serviceOptions.map((service) => <option key={service.id} value={service.id}>{text(service.title, language)}</option>)}</select></label>
         <label>{t.message as string}<textarea rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></label>
         {formNote && <p className="form-note" role="status">{formNote}</p>}
         <StylistButton asButton>{t.send as string} →</StylistButton>
@@ -547,7 +581,7 @@ function Overlays({ activeLightbox, galleryImagesLength, language, onTouchEnd, s
           <button className="close" type="button" onClick={() => setLightboxIndex(null)}>× {t.close as string}</button>
           <button className="lightbox-nav previous" type="button" aria-label={t.previous as string} onClick={() => setLightboxIndex((current) => (current === null ? current : (current - 1 + galleryImagesLength) % galleryImagesLength))}>←</button>
           <figure>
-            <img src={activeLightbox.image.url} alt={activeLightbox.image.alt || text(activeLightbox.item.title, language)} />
+            <img src={assetSrc(activeLightbox.image.url)} alt={activeLightbox.image.alt || text(activeLightbox.item.title, language)} />
             <figcaption>{text(activeLightbox.item.title, language)}</figcaption>
           </figure>
           <button className="lightbox-nav next" type="button" aria-label={t.next as string} onClick={() => setLightboxIndex((current) => (current === null ? current : (current + 1) % galleryImagesLength))}>→</button>
@@ -557,7 +591,7 @@ function Overlays({ activeLightbox, galleryImagesLength, language, onTouchEnd, s
         <div className="image-lightbox" role="dialog" aria-modal="true" aria-label={text(selectedPublication.title, language)}>
           <button className="close" type="button" onClick={() => setSelectedPublication(null)}>× {t.close as string}</button>
           <figure>
-            <img src={selectedPublication.image} alt={text(selectedPublication.title, language)} />
+            <img src={assetSrc(selectedPublication.image)} alt={text(selectedPublication.title, language)} />
             <figcaption>{text(selectedPublication.title, language)}</figcaption>
           </figure>
         </div>
@@ -569,7 +603,7 @@ function Overlays({ activeLightbox, galleryImagesLength, language, onTouchEnd, s
 function PublicationCover({ language, publication }: { language: Language; publication: Publication }) {
   return (
     <article className="publication-cover">
-      <img loading="lazy" src={publication.image} alt={text(publication.title, language)} />
+      <img loading="lazy" src={assetSrc(publication.image)} alt={text(publication.title, language)} />
       <h3>{text(publication.title, language)}</h3>
     </article>
   );

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Manrope } from "next/font/google";
+import { Bebas_Neue, Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
 
 const bodyFont = Manrope({
@@ -13,6 +13,12 @@ const displayFont = Cormorant_Garamond({
   weight: ["400", "500", "600"],
 });
 
+const condensedFont = Bebas_Neue({
+  variable: "--font-condensed",
+  subsets: ["latin"],
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "Ana Styling | Miami Personal Stylist",
   description: "Premium personal styling, wardrobe edits, editorial direction, and WhatsApp booking for Ana Styling in Miami.",
@@ -22,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bodyFont.variable} ${displayFont.variable} h-full antialiased`}
+      className={`${bodyFont.variable} ${displayFont.variable} ${condensedFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

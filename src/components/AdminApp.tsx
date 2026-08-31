@@ -31,18 +31,63 @@ import { localized, text } from "@/lib/i18n";
 type View = "Dashboard" | "Portfolio" | "Editor" | "Services" | "Publications" | "Site Text";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
 
-const categories: PortfolioCategory[] = ["Personal Styling", "Editorial", "Events", "Closet Edit"];
+const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const imageSizes: PortfolioImageSize[] = ["Small", "Medium", "Large"];
 const serviceGroups: ServiceGroup[] = ["Personal Styling", "Commercial Styling"];
 const placeholderImage = "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=600&q=80";
 const adminLanguages: Language[] = ["en", "ru"];
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
+const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const ADMIN_SESSION_KEY = "ana-styling-admin-session";
 const ADMIN_PASSWORD_HASH = "bf366af24016c4a9be8afd52f1fc371eb73837ea245bb71677544b1fe6692198";
 
 function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function fileToDataUrl(file: File) {
+  if (!file.type.startsWith("image/")) {
+    return readFileAsDataUrl(file);
+  }
+
+  const sourceUrl = URL.createObjectURL(file);
+
+  try {
+    const image = new Image();
+    image.src = sourceUrl;
+    await image.decode();
+
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      return readFileAsDataUrl(file);
+    }
+
+    canvas.width = width;
+    canvas.height = height;
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.88);
+  } catch {
+    return readFileAsDataUrl(file);
+  } finally {
+    URL.revokeObjectURL(sourceUrl);
+  }
 }
 
 async function hashPassword(value: string) {
@@ -169,6 +214,24 @@ export function AdminApp() {
     }));
   }
 
+  async function replaceHeroImage(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const url = await fileToDataUrl(file);
+
+    updateData((current) => ({
+      ...current,
+      content: {
+        ...current.content,
+        homepage: {
+          ...current.content.homepage,
+          heroImage: url,
+        },
+      },
+    }));
+    event.target.value = "";
+  }
+
   function openEditor(id: string) {
     setEditingId(id);
     setMode("Edit");
@@ -180,7 +243,7 @@ export function AdminApp() {
     const nextItem: PortfolioItem = {
       id,
       title: { en: "Untitled Portfolio Item", ru: "Новая работа" },
-      category: "Personal Styling",
+      category: "Editorial",
       description: { en: "", ru: "" },
       images: [],
       order: data.portfolioItems.length + 1,
@@ -189,7 +252,9 @@ export function AdminApp() {
     };
 
     updateData((current) => ({ ...current, portfolioItems: [...current.portfolioItems, nextItem] }));
-    openEditor(id);
+    setEditingId(id);
+    setMode("Edit");
+    setActive("Editor");
   }
 
   function addPublication() {
@@ -227,10 +292,14 @@ export function AdminApp() {
   function deleteItem(id: string) {
     setConfirm({
       title: "Delete this portfolio item?",
-      body: "This will remove the work from the studio list.",
+      body: "This will remove the work from the studio and from the website.",
       action: () => {
-        updateData((current) => ({ ...current, portfolioItems: current.portfolioItems.filter((item) => item.id !== id) }));
-        setEditingId(null);
+        updateData((current) => {
+          const nextItems = current.portfolioItems.filter((item) => item.id !== id).map((item, index) => ({ ...item, order: index + 1 }));
+          setEditingId(nextItems[0]?.id ?? null);
+          setActive("Portfolio");
+          return { ...current, portfolioItems: nextItems };
+        });
       },
     });
   }
@@ -257,14 +326,15 @@ export function AdminApp() {
     setPublications(arrayMove(publications, oldIndex, newIndex));
   }
 
-  function addImages(id: string, event: ChangeEvent<HTMLInputElement>) {
+  async function addImages(id: string, event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? []);
     if (!files.length) return;
     const item = data.portfolioItems.find((portfolioItem) => portfolioItem.id === id);
     const start = item?.images.length ?? 0;
+    const urls = await Promise.all(files.map(fileToDataUrl));
     const previews = files.map((file, index): PortfolioImage => ({
       id: createId(`${id}-photo-${index + 1}`),
-      url: URL.createObjectURL(file),
+      url: urls[index],
       alt: file.name,
       order: start + index + 1,
       isCover: start === 0 && index === 0,
@@ -288,17 +358,24 @@ export function AdminApp() {
     updateItem(itemId, { images: item.images.map((image) => ({ ...image, isCover: image.id === imageId, hidden: image.id === imageId ? false : image.hidden })) });
   }
 
-  function replaceImage(itemId: string, imageId: string, event: ChangeEvent<HTMLInputElement>) {
+  async function replaceImage(itemId: string, imageId: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updateImage(itemId, imageId, { url: URL.createObjectURL(file), alt: file.name, hidden: false });
+    updateImage(itemId, imageId, { url: await fileToDataUrl(file), alt: file.name, hidden: false });
     event.target.value = "";
   }
 
-  function replacePublicationImage(id: string, event: ChangeEvent<HTMLInputElement>) {
+  async function replacePublicationImage(id: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updatePublication(id, { image: URL.createObjectURL(file) });
+    updatePublication(id, { image: await fileToDataUrl(file) });
+    event.target.value = "";
+  }
+
+  async function replaceServiceImage(id: string, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    updateService(id, { image: await fileToDataUrl(file) });
     event.target.value = "";
   }
 
@@ -309,8 +386,20 @@ export function AdminApp() {
       action: () => {
         const item = data.portfolioItems.find((portfolioItem) => portfolioItem.id === itemId);
         if (!item) return;
+        const remainingPhotos = item.images.filter((photo) => photo.id !== image.id).map((photo, index) => ({ ...photo, order: index + 1 }));
+        const needsCover = image.isCover && remainingPhotos.length > 0 && !remainingPhotos.some((photo) => photo.isCover);
         setUndoPhoto({ itemId, image });
-        updateItem(itemId, { images: item.images.filter((photo) => photo.id !== image.id).map((photo, index) => ({ ...photo, order: index + 1 })) });
+        updateItem(itemId, { images: needsCover ? remainingPhotos.map((photo, index) => ({ ...photo, isCover: index === 0 })) : remainingPhotos });
+      },
+    });
+  }
+
+  function deletePublication(id: string) {
+    setConfirm({
+      title: "Delete this publication?",
+      body: "This will remove the publication cover from the studio and from the website.",
+      action: () => {
+        updateData((current) => ({ ...current, publications: current.publications.filter((item) => item.id !== id).map((item, index) => ({ ...item, order: index + 1 })) }));
       },
     });
   }
@@ -440,13 +529,25 @@ export function AdminApp() {
           </div>
         )}
 
+        {active === "Editor" && !editingItem && (
+          <div className="admin-view">
+            <div className="admin-hero">
+              <div><p className="eyebrow">Add new work</p><h2>Create a portfolio story</h2><p>Start a new work, upload photos, choose a category, then publish it when it is ready.</p></div>
+              <button className="button primary" type="button" onClick={addItem}>Create work</button>
+            </div>
+          </div>
+        )}
+
         {active === "Services" && (
           <div className="admin-view">
             <div className="admin-heading"><div><p className="eyebrow">Services</p><h2>Edit your offers</h2></div></div>
             <div className="admin-list">
               {[...data.services].sort((a, b) => a.order - b.order).map((service) => (
                 <article className="service-edit" key={service.id}>
-                  <img src={service.image} alt="" />
+                  <div className="service-image-editor">
+                    <img src={assetSrc(service.image)} alt="" />
+                    <label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replaceServiceImage(service.id, event)} /></label>
+                  </div>
                   <div>
                     <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
                     <label>Service name {contentLanguage.toUpperCase()}<input value={text(service.title, contentLanguage)} onChange={(event) => updateLocalizedService(service.id, "title", contentLanguage, event.target.value)} /></label>
@@ -476,7 +577,7 @@ export function AdminApp() {
                       contentLanguage={contentLanguage}
                       key={publication.id}
                       publication={publication}
-                      onDelete={() => updateData((current) => ({ ...current, publications: current.publications.filter((item) => item.id !== publication.id) }))}
+                      onDelete={() => deletePublication(publication.id)}
                       onReplace={(event) => replacePublicationImage(publication.id, event)}
                       onTitle={(value) => updateLocalizedPublication(publication.id, contentLanguage, value)}
                       onToggle={() => updatePublication(publication.id, { published: !publication.published })}
@@ -495,6 +596,10 @@ export function AdminApp() {
               <section className="editor-form editor-panel">
                 <h3>Homepage</h3>
                 <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
+                <div className="hero-image-admin">
+                  <img src={assetSrc(data.content.homepage.heroImage)} alt="" />
+                  <label className="upload-zone">Replace hero photo<input type="file" accept="image/*" onChange={replaceHeroImage} /><span>This photo appears on the first screen of the website.</span></label>
+                </div>
                 <label>Main message {contentLanguage.toUpperCase()}<textarea rows={4} value={text(data.content.homepage.positioning, contentLanguage)} onChange={(event) => updateContentField("homepage", "positioning", contentLanguage, event.target.value)} /></label>
                 <label>Small hero note {contentLanguage.toUpperCase()}<input value={text(data.content.homepage.heroNote, contentLanguage)} onChange={(event) => updateContentField("homepage", "heroNote", contentLanguage, event.target.value)} /></label>
               </section>
@@ -539,7 +644,7 @@ function PortfolioPreviewCard({ item, onEdit }: { item: PortfolioItem; onEdit: (
 
   return (
     <button className="recent-card" type="button" onClick={onEdit}>
-      <img src={cover?.url ?? placeholderImage} alt="" />
+      <img src={assetSrc(cover?.url ?? placeholderImage)} alt="" />
       <span className={item.published ? "status live" : "status draft"}>{item.published ? "Published" : "Draft"}</span>
       <strong>{text(item.title, "en")}</strong>
       <small>{item.category} · {item.images.length} photos</small>
@@ -560,7 +665,7 @@ function SortablePortfolioRow(props: {
   return (
     <article className={`portfolio-admin-card ${isDragging ? "dragging" : ""}`} ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
       <button className="drag-handle" type="button" {...attributes} {...listeners} aria-label={`Reorder ${text(props.item.title, "en")}`}>Drag</button>
-      <img src={cover?.url ?? placeholderImage} alt="" />
+      <img src={assetSrc(cover?.url ?? placeholderImage)} alt="" />
       <div className="portfolio-admin-main">
         <strong>{text(props.item.title, "en")}</strong>
         <span>{props.item.category}</span>
@@ -590,7 +695,7 @@ function SortablePhotoCard(props: {
   return (
     <article className={`photo-card ${props.image.hidden ? "is-hidden" : ""} ${isDragging ? "dragging" : ""}`} ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
       <button className="photo-drag" type="button" {...attributes} {...listeners} aria-label="Reorder photo">Drag photo</button>
-      <img src={props.image.url} alt="" />
+      <img src={assetSrc(props.image.url)} alt="" />
       {props.image.isCover && <span className="cover-badge">Cover</span>}
       <div className="photo-controls">
         <button type="button" onClick={props.onCover}>Set cover</button>
@@ -615,7 +720,7 @@ function PortfolioPreview({ item }: { item: PortfolioItem }) {
         <span className={item.published ? "status live" : "status draft"}>{item.published ? "Published" : "Draft"}</span>
       </div>
       <div className="preview-masonry">
-        {images.map((image) => <img className={`preview-${image.size.toLowerCase()}`} key={image.id} src={image.url} alt="" />)}
+        {images.map((image) => <img className={`preview-${image.size.toLowerCase()}`} key={image.id} src={assetSrc(image.url)} alt="" />)}
       </div>
     </section>
   );
@@ -633,7 +738,7 @@ function SortablePublicationRow(props: {
 
   return (
     <article className={`service-edit ${isDragging ? "dragging" : ""}`} ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      <img src={props.publication.image} alt="" />
+      <img src={assetSrc(props.publication.image)} alt="" />
       <div>
         <button className="drag-handle" type="button" {...attributes} {...listeners} aria-label={`Reorder ${text(props.publication.title, "en")}`}>Drag</button>
         <label>Publication title {props.contentLanguage.toUpperCase()}<input value={text(props.publication.title, props.contentLanguage)} onChange={(event) => props.onTitle(event.target.value)} /></label>

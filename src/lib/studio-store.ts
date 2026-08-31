@@ -3,8 +3,10 @@ import { localized } from "@/lib/i18n";
 
 export const STUDIO_STORAGE_KEY = "ana-styling-studio-data";
 const STUDIO_STORAGE_VERSION_KEY = "ana-styling-studio-data-version";
-const STUDIO_STORAGE_VERSION = "2026-08-30-public-i18n-v4";
+const STUDIO_STORAGE_VERSION = "2026-09-01-real-publications-v1";
 const LEGACY_DEFAULT_SERVICE_IDS = new Set(["styling-consultation", "wardrobe-edit", "event-dressing", "editorial-direction"]);
+const LEGACY_PORTFOLIO_CATEGORY_IDS = new Set(["Personal Styling", "Events", "Closet Edit"]);
+const LEGACY_PUBLICATION_IDS = new Set(["publication-placeholder-1", "publication-placeholder-2", "publication-placeholder-3"]);
 
 export function loadStudioData(): StudioData {
   if (typeof window === "undefined") {
@@ -20,10 +22,13 @@ export function loadStudioData(): StudioData {
   try {
     const parsed = JSON.parse(saved) as Partial<StudioData>;
     const hasLegacyServices = parsed.services?.some((service) => LEGACY_DEFAULT_SERVICE_IDS.has(service.id ?? "")) ?? false;
-    const refreshDefaultCopy = window.localStorage.getItem(STUDIO_STORAGE_VERSION_KEY) !== STUDIO_STORAGE_VERSION || hasLegacyServices;
-    const data = normalizeStudioData(parsed, refreshDefaultCopy);
+    const hasLegacyPortfolio = parsed.portfolioItems?.some((item) => LEGACY_PORTFOLIO_CATEGORY_IDS.has(item.category ?? "") || item.images?.some((image) => image.url?.includes("images.unsplash.com"))) ?? false;
+    const hasLegacyPublications = parsed.publications?.some((publication) => LEGACY_PUBLICATION_IDS.has(publication.id ?? "") || publication.image?.includes("images.unsplash.com")) ?? false;
+    const hasOldStorageVersion = window.localStorage.getItem(STUDIO_STORAGE_VERSION_KEY) !== STUDIO_STORAGE_VERSION;
+    const refreshDefaultCopy = hasLegacyServices || hasLegacyPortfolio;
+    const data = normalizeStudioData(hasLegacyPublications ? { ...parsed, publications: initialStudioData.publications } : parsed, refreshDefaultCopy);
 
-    if (refreshDefaultCopy) {
+    if (refreshDefaultCopy || hasLegacyPublications || hasOldStorageVersion) {
       window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(data));
       window.localStorage.setItem(STUDIO_STORAGE_VERSION_KEY, STUDIO_STORAGE_VERSION);
     }
@@ -49,6 +54,7 @@ function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = fa
       homepage: {
         positioning: localized(value.content?.homepage?.positioning ?? initialStudioData.content.homepage.positioning),
         heroNote: localized(value.content?.homepage?.heroNote ?? initialStudioData.content.homepage.heroNote),
+        heroImage: value.content?.homepage?.heroImage ?? initialStudioData.content.homepage.heroImage,
       },
       about: {
         headline: localized(value.content?.about?.headline ?? initialStudioData.content.about.headline),
@@ -61,7 +67,7 @@ function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = fa
       },
     },
     services: mergeServices(value.services, refreshDefaultCopy),
-    portfolioItems: mergePortfolioItems(value.portfolioItems, refreshDefaultCopy),
+    portfolioItems: refreshDefaultCopy ? initialStudioData.portfolioItems : mergePortfolioItems(value.portfolioItems),
     publications: mergePublications(value.publications, refreshDefaultCopy),
   };
 }
@@ -77,6 +83,10 @@ function mergeServices(savedServices?: Partial<Service>[], refreshDefaultCopy = 
 }
 
 function mergePublications(savedPublications?: Partial<Publication>[], refreshDefaultCopy = false) {
+  if (savedPublications && !refreshDefaultCopy) {
+    return savedPublications.map((publication, index) => normalizePublication(publication, index)).map((publication, index) => ({ ...publication, order: index + 1 }));
+  }
+
   const normalizedDefaults = initialStudioData.publications.map((fallback, index) => {
     const saved = savedPublications?.find((publication) => publication.id === fallback.id);
     return normalizePublication(saved ?? fallback, index, refreshDefaultCopy);
@@ -87,6 +97,10 @@ function mergePublications(savedPublications?: Partial<Publication>[], refreshDe
 }
 
 function mergePortfolioItems(savedItems?: Partial<PortfolioItem>[], refreshDefaultCopy = false) {
+  if (savedItems && !refreshDefaultCopy) {
+    return savedItems.map((item, index) => normalizePortfolioItem(item, index)).map((item, index) => ({ ...item, order: index + 1 }));
+  }
+
   const normalizedDefaults = initialStudioData.portfolioItems.map((fallback, index) => {
     const saved = savedItems?.find((item) => item.id === fallback.id);
     return normalizePortfolioItem(saved ?? fallback, index, refreshDefaultCopy);

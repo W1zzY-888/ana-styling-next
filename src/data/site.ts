@@ -1,6 +1,6 @@
 export type Language = "en" | "ru";
 export type LocalizedString = { en: string; ru: string };
-export type PortfolioCategory = "Personal Styling" | "Editorial" | "Events" | "Closet Edit";
+export type PortfolioCategory = "Cover" | "Editorial" | "Campaign" | "Studio" | "Fashion";
 export type PortfolioImageSize = "Small" | "Medium" | "Large";
 export type ServiceGroup = "Personal Styling" | "Commercial Styling";
 
@@ -51,6 +51,7 @@ export type SiteContent = {
   homepage: {
     positioning: LocalizedString;
     heroNote: LocalizedString;
+    heroImage: string;
   };
   about: {
     headline: LocalizedString;
@@ -87,10 +88,11 @@ const image = (id: string, url: string, order: number, isCover = false, size: Po
 });
 
 export const categoryLabels: Record<PortfolioCategory, LocalizedString> = {
-  "Personal Styling": l("Personal Styling", "Персональный стиль"),
-  Editorial: l("Editorial", "Съёмки"),
-  Events: l("Events", "События"),
-  "Closet Edit": l("Closet Edit", "Разбор гардероба"),
+  Cover: l("Cover", "Обложка"),
+  Editorial: l("Editorial", "Эдиториал"),
+  Campaign: l("Campaign", "Кампания"),
+  Studio: l("Studio", "Студия"),
+  Fashion: l("Fashion", "Мода"),
 };
 
 export const initialStudioData: StudioData = {
@@ -105,6 +107,7 @@ export const initialStudioData: StudioData = {
         "Студия персонального и коммерческого стайлинга в Майами: продуманные гардеробы, модные съёмки и визуальные истории.",
       ),
       heroNote: l("Wardrobe edits / event styling / image direction", "Разбор гардероба / образы для событий / имидж-направление"),
+      heroImage: "/ana-photos/hero.jpg",
     },
     about: {
       headline: l("My name is Ana", "Меня зовут Ana"),
@@ -260,82 +263,69 @@ export const initialStudioData: StudioData = {
   ],
   portfolioItems: [
     {
-      id: "bal-harbour-weekend",
-      title: l("Bal Harbour Weekend", "Уикенд в Бал-Харбор"),
-      category: "Personal Styling",
-      description: l("A soft neutral wardrobe for a client moving between private lunches, galleries, and oceanfront evenings.", "Мягкий нейтральный гардероб для приватных ланчей, галерей и океанских вечеров."),
-      images: [
-        image("bal-1", "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=85", 1, true, "Large"),
-        image("bal-2", "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=85", 2, false, "Medium"),
-        image("bal-3", "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1200&q=85", 3, false, "Small"),
-      ],
+      id: "portfolio-cover",
+      title: l("Cover", "Обложка"),
+      category: "Cover",
+      description: l("Magazine cover styling with a clean, graphic fashion direction.", "Стайлинг обложки с чистым графичным модным направлением."),
+      images: [image("cover-1", "/ana-photos/cover.png", 1, true, "Large")],
       order: 1,
       published: true,
       featured: true,
     },
     {
-      id: "wynwood-editorial",
-      title: l("Wynwood Editorial", "Съёмка в Винвуде"),
+      id: "portfolio-editorial",
+      title: l("Editorial", "Эдиториал"),
       category: "Editorial",
-      description: l("Graphic tailoring, wet-look hair, and sculptural accessories for a compact fashion story.", "Графичный крой, эффект влажной укладки и скульптурные аксессуары для компактной модной съёмки."),
-      images: [
-        image("wyn-1", "https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=1200&q=85", 1, true, "Large"),
-        image("wyn-2", "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=85", 2, false, "Medium"),
-        image("wyn-3", "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=85", 3, false, "Small"),
-      ],
+      description: l("Editorial styling built around mood, proportion, and a precise visual story.", "Эдиториал-стайлинг вокруг настроения, пропорций и точной визуальной истории."),
+      images: [image("editorial-1", "/ana-photos/editorial.jpg", 1, true, "Large")],
       order: 2,
       published: true,
       featured: false,
     },
     {
-      id: "brickell-evening",
-      title: l("Brickell Evening", "Вечер в Брикелле"),
-      category: "Events",
-      description: l("Black satin, clean jewelry, and a disciplined after-dark palette for a fundraising dinner.", "Черный сатин, лаконичные украшения и дисциплинированная вечерняя палитра для благотворительного ужина."),
-      images: [
-        image("bri-1", "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=85", 1, true, "Medium"),
-        image("bri-2", "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=85", 2, false, "Large"),
-        image("bri-3", "https://images.unsplash.com/photo-1502716119720-b23a93e5fe1b?auto=format&fit=crop&w=1200&q=85", 3, false, "Small"),
-      ],
+      id: "portfolio-campaign",
+      title: l("Campaign", "Кампания"),
+      category: "Campaign",
+      description: l("Campaign imagery with expressive color, beauty, and commercial impact.", "Кампейн-визуал с выразительным цветом, beauty-настроением и коммерческим эффектом."),
+      images: [image("campaign-1", "/ana-photos/campaign.jpg", 1, true, "Medium")],
       order: 3,
       published: true,
       featured: false,
     },
     {
-      id: "coconut-grove-closet",
-      title: l("Coconut Grove Closet Reset", "Разбор гардероба в Коконат-Гроув"),
-      category: "Closet Edit",
-      description: l("A wardrobe reduction centered on linen, denim, silk separates, and pieces that travel beautifully.", "Сокращение гардероба вокруг льна, денима, шелковых комплектов и вещей, которые красиво работают в поездках."),
-      images: [
-        image("coco-1", "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=1200&q=85", 1, true, "Large"),
-        image("coco-2", "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1200&q=85", 2, false, "Medium"),
-        image("coco-3", "https://images.unsplash.com/photo-1520006403909-838d6b92c22e?auto=format&fit=crop&w=1200&q=85", 3, false, "Small"),
-      ],
+      id: "portfolio-studio",
+      title: l("Studio", "Студия"),
+      category: "Studio",
+      description: l("Studio fashion styling with strong silhouette, hair, and attitude.", "Студийный модный стайлинг с сильным силуэтом, волосами и характером."),
+      images: [image("studio-1", "/ana-photos/studio.jpg", 1, true, "Medium")],
       order: 4,
+      published: true,
+      featured: false,
+    },
+    {
+      id: "portfolio-fashion",
+      title: l("Fashion", "Мода"),
+      category: "Fashion",
+      description: l("Polished fashion styling with a refined Miami mood.", "Премиальный модный стайлинг с утончённым настроением Майами."),
+      images: [image("fashion-1", "/ana-photos/fashion.jpg", 1, true, "Large")],
+      order: 5,
       published: true,
       featured: false,
     },
   ],
   publications: [
     {
-      id: "publication-placeholder-1",
-      title: l("Publication Cover", "Обложка публикации"),
-      image: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=800&q=84",
+      id: "publication-noir",
+      title: l("NOIR Cover", "Обложка NOIR"),
+      image: "/ana-photos/publication-noir.png",
       order: 1,
       published: true,
     },
     {
-      id: "publication-placeholder-2",
-      title: l("Editorial Feature", "Публикация о съёмке"),
-      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=84",
+      id: "publication-marie-claire",
+      title: l("Marie Claire Cover", "Обложка Marie Claire"),
+      image: "/ana-photos/publication-marie-claire.png",
       order: 2,
-      published: true,
-    },
-    {
-      id: "publication-placeholder-3",
-      title: l("Fashion Story", "Модная история"),
-      image: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=800&q=84",
-      order: 3,
       published: true,
     },
   ],
