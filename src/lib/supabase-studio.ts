@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { initialStudioData, type StudioData } from "@/data/site";
+import { type StudioData } from "@/data/site";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -9,6 +9,57 @@ const bucketName = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || "ana-styli
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured ? createClient(supabaseUrl!, supabaseAnonKey!) : null;
+
+export async function getAdminSession() {
+  if (!supabase) return null;
+
+  const { data } = await supabase.auth.getSession();
+  return data.session;
+}
+
+export async function isCurrentUserStudioAdmin() {
+  if (!supabase) return false;
+
+  const session = await getAdminSession();
+  if (!session) return false;
+
+  const { data, error } = await supabase
+    .from("studio_admins")
+    .select("user_id")
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Ana Styling could not verify studio admin access.", error);
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+export async function signInAdmin(email: string, password: string) {
+  if (!supabase) return { ok: false, message: "Supabase is not configured yet." };
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    return { ok: false, message: "Wrong email or password. Please try again." };
+  }
+
+  const isAdmin = await isCurrentUserStudioAdmin();
+
+  if (!isAdmin) {
+    await signOutAdmin();
+    return { ok: false, message: "This account does not have studio access." };
+  }
+
+  return { ok: true, message: "" };
+}
+
+export async function signOutAdmin() {
+  if (!supabase) return;
+  await supabase.auth.signOut();
+}
 
 export async function loadStudioDataFromSupabase() {
   if (!supabase) return null;
@@ -44,15 +95,6 @@ export async function saveStudioDataToSupabase(data: StudioData) {
   }
 
   return true;
-}
-
-export async function seedStudioDataInSupabase() {
-  if (!supabase) return false;
-
-  const current = await loadStudioDataFromSupabase();
-  if (current) return true;
-
-  return saveStudioDataToSupabase(initialStudioData);
 }
 
 export async function uploadStudioImage(file: File, folder: string) {

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { type StudioData } from "@/data/site";
 import { loadStudioData, saveStudioData } from "@/lib/studio-store";
-import { loadStudioDataFromSupabase, saveStudioDataToSupabase, seedStudioDataInSupabase } from "@/lib/supabase-studio";
+import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
 
 export function useStudioData() {
   const [data, setData] = useState<StudioData>(() => loadStudioData());
@@ -15,7 +15,6 @@ export function useStudioData() {
 
     async function syncRemoteData() {
       setIsSyncing(true);
-      await seedStudioDataInSupabase();
       const remoteData = await loadStudioDataFromSupabase();
 
       if (remoteData && isMounted) {

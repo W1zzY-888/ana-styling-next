@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, type FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, type FormEvent, useEffect, useMemo, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -26,7 +26,7 @@ import {
 } from "@/data/site";
 import { useStudioData } from "@/hooks/useStudioData";
 import { localized, text } from "@/lib/i18n";
-import { isSupabaseConfigured, uploadStudioImage } from "@/lib/supabase-studio";
+import { getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, signInAdmin, signOutAdmin, uploadStudioImage } from "@/lib/supabase-studio";
 
 type View = "Dashboard" | "Portfolio" | "Editor" | "Services" | "Publications" | "Site Text";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
@@ -40,7 +40,6 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const ADMIN_SESSION_KEY = "ana-styling-admin-session";
-const ADMIN_PASSWORD_HASH = "3dd39ffc3d8bfc14842de959ce31f8ab799e87d2191caa7c32997de2fda8ee89";
 
 function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
@@ -99,21 +98,22 @@ async function fileToStudioUrl(file: File, folder: string) {
   return fileToDataUrl(file);
 }
 
-async function hashPassword(value: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const hash = await hashPassword(password);
+    if (!isSupabaseConfigured) {
+      setError("Supabase is not configured yet.");
+      return;
+    }
 
-    if (hash !== ADMIN_PASSWORD_HASH) {
-      setError("Wrong password. Please try again.");
+    const result = await signInAdmin(email.trim(), password);
+
+    if (!result.ok) {
+      setError(result.message);
       return;
     }
 
@@ -127,7 +127,11 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
       <form className="admin-login-card" onSubmit={submitPassword}>
         <p className="eyebrow">ANA STYLING</p>
         <h1>Private Studio</h1>
-        <p>Enter the studio password to manage portfolio, services, publications, and site text.</p>
+        <p>Sign in to manage portfolio, services, publications, and site text.</p>
+        <label>
+          Email
+          <input autoComplete="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />
+        </label>
         <label>
           Password
           <input autoComplete="current-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
@@ -141,7 +145,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 }
 
 export function AdminApp() {
-  const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
+  const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" || isSupabaseConfigured ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
   const { data, saveError, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
@@ -158,6 +162,27 @@ export function AdminApp() {
   const items = useMemo(() => [...data.portfolioItems].sort((a, b) => a.order - b.order), [data.portfolioItems]);
   const editingItem = useMemo(() => data.portfolioItems.find((item) => item.id === editingId) ?? null, [data.portfolioItems, editingId]);
   const publications = useMemo(() => [...data.publications].sort((a, b) => a.order - b.order), [data.publications]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function unlockFromSupabaseSession() {
+      if (!isSupabaseConfigured) return;
+      const session = await getAdminSession();
+      const isAdmin = session ? await isCurrentUserStudioAdmin() : false;
+
+      if (session && isAdmin && isMounted) {
+        window.sessionStorage.setItem(ADMIN_SESSION_KEY, "unlocked");
+        setIsUnlocked(true);
+      }
+    }
+
+    unlockFromSupabaseSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
@@ -435,7 +460,8 @@ export function AdminApp() {
         ))}
         <button type="button" onClick={addItem}>Add new work</button>
         <a href={pageHref("/")}>View website</a>
-        <button type="button" onClick={() => {
+        <button type="button" onClick={async () => {
+          await signOutAdmin();
           window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
           setIsUnlocked(false);
         }}>Lock studio</button>
