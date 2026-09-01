@@ -67,7 +67,7 @@ async function fileToDataUrl(file: File) {
     image.src = sourceUrl;
     await image.decode();
 
-    const maxSide = 1800;
+    const maxSide = 1200;
     const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
     const width = Math.max(1, Math.round(image.naturalWidth * scale));
     const height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -81,7 +81,7 @@ async function fileToDataUrl(file: File) {
     canvas.width = width;
     canvas.height = height;
     context.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL("image/jpeg", 0.88);
+    return canvas.toDataURL("image/jpeg", 0.78);
   } catch {
     return readFileAsDataUrl(file);
   } finally {
@@ -132,7 +132,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 
 export function AdminApp() {
   const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
-  const { data, updateData } = useStudioData();
+  const { data, saveError, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
   const [mode, setMode] = useState<"Edit" | "Preview">("Edit");
@@ -432,6 +432,7 @@ export function AdminApp() {
       </aside>
 
       <section className="admin-content">
+        {saveError && <div className="admin-save-error" role="alert">{saveError}</div>}
         {active === "Dashboard" && (
           <div className="admin-view">
             <div className="admin-hero">

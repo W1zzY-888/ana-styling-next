@@ -3,7 +3,7 @@ import { localized } from "@/lib/i18n";
 
 export const STUDIO_STORAGE_KEY = "ana-styling-studio-data";
 const STUDIO_STORAGE_VERSION_KEY = "ana-styling-studio-data-version";
-const STUDIO_STORAGE_VERSION = "2026-09-01-real-publications-v1";
+const STUDIO_STORAGE_VERSION = "2026-09-02-preserve-admin-edits-v1";
 const LEGACY_DEFAULT_SERVICE_IDS = new Set(["styling-consultation", "wardrobe-edit", "event-dressing", "editorial-direction"]);
 const LEGACY_PORTFOLIO_CATEGORY_IDS = new Set(["Personal Styling", "Events", "Closet Edit"]);
 const LEGACY_PUBLICATION_IDS = new Set(["publication-placeholder-1", "publication-placeholder-2", "publication-placeholder-3"]);
@@ -24,14 +24,14 @@ export function loadStudioData(): StudioData {
     const hasLegacyServices = parsed.services?.some((service) => LEGACY_DEFAULT_SERVICE_IDS.has(service.id ?? "")) ?? false;
     const hasLegacyPortfolio = parsed.portfolioItems?.some((item) => LEGACY_PORTFOLIO_CATEGORY_IDS.has(item.category ?? "") || item.images?.some((image) => image.url?.includes("images.unsplash.com"))) ?? false;
     const hasLegacyPublications = parsed.publications?.some((publication) => LEGACY_PUBLICATION_IDS.has(publication.id ?? "") || publication.image?.includes("images.unsplash.com")) ?? false;
-    const hasOldStorageVersion = window.localStorage.getItem(STUDIO_STORAGE_VERSION_KEY) !== STUDIO_STORAGE_VERSION;
     const refreshDefaultCopy = hasLegacyServices || hasLegacyPortfolio;
     const data = normalizeStudioData(hasLegacyPublications ? { ...parsed, publications: initialStudioData.publications } : parsed, refreshDefaultCopy);
 
-    if (refreshDefaultCopy || hasLegacyPublications || hasOldStorageVersion) {
+    if (refreshDefaultCopy || hasLegacyPublications) {
       window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(data));
-      window.localStorage.setItem(STUDIO_STORAGE_VERSION_KEY, STUDIO_STORAGE_VERSION);
     }
+
+    window.localStorage.setItem(STUDIO_STORAGE_VERSION_KEY, STUDIO_STORAGE_VERSION);
 
     return data;
   } catch {
@@ -40,9 +40,15 @@ export function loadStudioData(): StudioData {
 }
 
 export function saveStudioData(data: StudioData) {
-  window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(data));
-  window.localStorage.setItem(STUDIO_STORAGE_VERSION_KEY, STUDIO_STORAGE_VERSION);
-  window.dispatchEvent(new CustomEvent<StudioData>("studio-data-change", { detail: data }));
+  try {
+    window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(data));
+    window.localStorage.setItem(STUDIO_STORAGE_VERSION_KEY, STUDIO_STORAGE_VERSION);
+    window.dispatchEvent(new CustomEvent<StudioData>("studio-data-change", { detail: data }));
+    return true;
+  } catch (error) {
+    console.error("Ana Styling could not save studio data.", error);
+    return false;
+  }
 }
 
 function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = false): StudioData {

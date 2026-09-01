@@ -6,6 +6,7 @@ import { loadStudioData, saveStudioData } from "@/lib/studio-store";
 
 export function useStudioData() {
   const [data, setData] = useState<StudioData>(() => loadStudioData());
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     function handleStorage(event: StorageEvent) {
@@ -30,10 +31,11 @@ export function useStudioData() {
   function updateData(updater: (current: StudioData) => StudioData) {
     setData((current) => {
       const next = updater(current);
-      saveStudioData(next);
+      const saved = saveStudioData(next);
+      setSaveError(saved ? "" : "The browser could not save this change. Please use a smaller image and try again.");
       return next;
     });
   }
 
-  return { data, updateData };
+  return { data, saveError, updateData };
 }

@@ -5381,6 +5381,15 @@ h3,
   align-items: start;
 }
 
+.admin-save-error {
+  background: #fff3f0;
+  border: 1px solid #a51f32;
+  color: #6d111d;
+  font-size: 0.9rem;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+}
+
 @media (max-width: 760px) {
   .service-image-editor img {
     aspect-ratio: 16 / 11;
