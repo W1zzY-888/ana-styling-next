@@ -28,7 +28,7 @@ import { useStudioData } from "@/hooks/useStudioData";
 import { localized, text } from "@/lib/i18n";
 import { getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, signInAdmin, signOutAdmin, uploadStudioImage } from "@/lib/supabase-studio";
 
-type View = "Dashboard" | "Portfolio" | "Editor" | "Services" | "Publications" | "Site Text";
+type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Contact";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
 
 const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
@@ -146,9 +146,12 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 
 export function AdminApp() {
   const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" || isSupabaseConfigured ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
-  const { data, saveError, updateData } = useStudioData();
+  const { data, retrySave, saveError, saveStatus, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(data.services[0]?.id ?? null);
+  const [editingPublicationId, setEditingPublicationId] = useState<string | null>(data.publications[0]?.id ?? null);
+  const [selectedPhoto, setSelectedPhoto] = useState<{ itemId: string; imageId: string } | null>(null);
   const [mode, setMode] = useState<"Edit" | "Preview">("Edit");
   const [contentLanguage, setContentLanguage] = useState<Language>("en");
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
@@ -161,7 +164,18 @@ export function AdminApp() {
 
   const items = useMemo(() => [...data.portfolioItems].sort((a, b) => a.order - b.order), [data.portfolioItems]);
   const editingItem = useMemo(() => data.portfolioItems.find((item) => item.id === editingId) ?? null, [data.portfolioItems, editingId]);
+  const editingService = useMemo(() => data.services.find((service) => service.id === editingServiceId) ?? null, [data.services, editingServiceId]);
+  const editingPublication = useMemo(() => data.publications.find((publication) => publication.id === editingPublicationId) ?? null, [data.publications, editingPublicationId]);
   const publications = useMemo(() => [...data.publications].sort((a, b) => a.order - b.order), [data.publications]);
+  const services = useMemo(() => [...data.services].sort((a, b) => a.order - b.order), [data.services]);
+  const portfolioPhotos = useMemo(
+    () => items.flatMap((item) => [...item.images].sort((a, b) => a.order - b.order).map((image) => ({ item, image }))),
+    [items],
+  );
+  const selectedPhotoData = useMemo(
+    () => portfolioPhotos.find(({ item, image }) => item.id === selectedPhoto?.itemId && image.id === selectedPhoto?.imageId) ?? null,
+    [portfolioPhotos, selectedPhoto],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -206,6 +220,10 @@ export function AdminApp() {
     }));
   }
 
+  function setServices(nextServices: Service[]) {
+    updateData((current) => ({ ...current, services: nextServices.map((service, index) => ({ ...service, order: index + 1 })) }));
+  }
+
   function setPublications(nextPublications: Publication[]) {
     updateData((current) => ({ ...current, publications: nextPublications.map((publication, index) => ({ ...publication, order: index + 1 })) }));
   }
@@ -215,6 +233,74 @@ export function AdminApp() {
       ...current,
       publications: current.publications.map((publication) => (publication.id === id ? { ...publication, ...patch } : publication)),
     }));
+  }
+
+  function moveService(id: string, direction: -1 | 1) {
+    const oldIndex = services.findIndex((service) => service.id === id);
+    const newIndex = oldIndex + direction;
+    if (oldIndex < 0 || newIndex < 0 || newIndex >= services.length) return;
+    setServices(arrayMove(services, oldIndex, newIndex));
+  }
+
+  function movePublication(id: string, direction: -1 | 1) {
+    const oldIndex = publications.findIndex((publication) => publication.id === id);
+    const newIndex = oldIndex + direction;
+    if (oldIndex < 0 || newIndex < 0 || newIndex >= publications.length) return;
+    setPublications(arrayMove(publications, oldIndex, newIndex));
+  }
+
+  function movePhoto(itemId: string, imageId: string, direction: -1 | 1) {
+    const item = data.portfolioItems.find((portfolioItem) => portfolioItem.id === itemId);
+    if (!item) return;
+    const sortedImages = [...item.images].sort((a, b) => a.order - b.order);
+    const oldIndex = sortedImages.findIndex((image) => image.id === imageId);
+    const newIndex = oldIndex + direction;
+    if (oldIndex < 0 || newIndex < 0 || newIndex >= sortedImages.length) return;
+    updateItem(itemId, { images: arrayMove(sortedImages, oldIndex, newIndex).map((image, index) => ({ ...image, order: index + 1 })) });
+  }
+
+  function addService() {
+    const id = createId("service");
+    updateData((current) => ({
+      ...current,
+      services: [
+        ...current.services,
+        {
+          id,
+          title: { en: "New Service", ru: "Новая услуга" },
+          eyebrow: { en: "Personal Styling", ru: "Персональный стайлинг" },
+          description: { en: "", ru: "" },
+          deliverables: [],
+          group: "Personal Styling",
+          price: { en: "", ru: "" },
+          image: placeholderImage,
+          order: current.services.length + 1,
+          published: false,
+        },
+      ],
+    }));
+    setEditingServiceId(id);
+    setActive("Service Editor");
+  }
+
+  function duplicateService(service: Service) {
+    const id = createId("service");
+    updateData((current) => ({
+      ...current,
+      services: [...current.services, { ...service, id, title: { en: `${text(service.title, "en")} Copy`, ru: `${text(service.title, "ru")} копия` }, order: current.services.length + 1, published: false }],
+    }));
+  }
+
+  function deleteService(id: string) {
+    setConfirm({
+      title: "Delete this service?",
+      body: "This removes the service from the studio and website.",
+      action: () => {
+        updateData((current) => ({ ...current, services: current.services.filter((service) => service.id !== id).map((service, index) => ({ ...service, order: index + 1 })) }));
+        setEditingServiceId(null);
+        setActive("Services");
+      },
+    });
   }
 
   function updateLocalizedItem(id: string, field: "title" | "description", language: Language, value: string) {
@@ -272,6 +358,16 @@ export function AdminApp() {
     setActive("Editor");
   }
 
+  function openServiceEditor(id: string) {
+    setEditingServiceId(id);
+    setActive("Service Editor");
+  }
+
+  function openPublicationEditor(id: string) {
+    setEditingPublicationId(id);
+    setActive("Publication Editor");
+  }
+
   function addItem() {
     const id = createId("portfolio");
     const nextItem: PortfolioItem = {
@@ -306,7 +402,45 @@ export function AdminApp() {
         },
       ],
     }));
-    setActive("Publications");
+    setEditingPublicationId(id);
+    setActive("Publication Editor");
+  }
+
+  async function addPortfolioPhotos(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    if (!files.length) return;
+
+    const id = createId("portfolio");
+    const urls = await Promise.all(files.map((file) => fileToStudioUrl(file, `portfolio/${id}`)));
+    const images = files.map((file, index): PortfolioImage => ({
+      id: createId(`${id}-photo-${index + 1}`),
+      url: urls[index],
+      alt: file.name,
+      order: index + 1,
+      isCover: index === 0,
+      hidden: false,
+      size: index === 0 ? "Large" : "Medium",
+    }));
+
+    updateData((current) => ({
+      ...current,
+      portfolioItems: [
+        ...current.portfolioItems,
+        {
+          id,
+          title: { en: "New Portfolio Work", ru: "Новая работа" },
+          category: "Editorial",
+          description: { en: "", ru: "" },
+          images,
+          order: current.portfolioItems.length + 1,
+          published: true,
+          featured: false,
+        },
+      ],
+    }));
+    setEditingId(id);
+    setActive("Editor");
+    event.target.value = "";
   }
 
   function duplicateItem(item: PortfolioItem) {
@@ -351,13 +485,6 @@ export function AdminApp() {
     const oldIndex = sortedImages.findIndex((image) => image.id === event.active.id);
     const newIndex = sortedImages.findIndex((image) => image.id === event.over?.id);
     updateItem(editingItem.id, { images: arrayMove(sortedImages, oldIndex, newIndex).map((image, index) => ({ ...image, order: index + 1 })) });
-  }
-
-  function handlePublicationDrag(event: DragEndEvent) {
-    if (!event.over || event.active.id === event.over.id) return;
-    const oldIndex = publications.findIndex((publication) => publication.id === event.active.id);
-    const newIndex = publications.findIndex((publication) => publication.id === event.over?.id);
-    setPublications(arrayMove(publications, oldIndex, newIndex));
   }
 
   async function addImages(id: string, event: ChangeEvent<HTMLInputElement>) {
@@ -423,6 +550,7 @@ export function AdminApp() {
         const remainingPhotos = item.images.filter((photo) => photo.id !== image.id).map((photo, index) => ({ ...photo, order: index + 1 }));
         const needsCover = image.isCover && remainingPhotos.length > 0 && !remainingPhotos.some((photo) => photo.isCover);
         setUndoPhoto({ itemId, image });
+        setSelectedPhoto(null);
         updateItem(itemId, { images: needsCover ? remainingPhotos.map((photo, index) => ({ ...photo, isCover: index === 0 })) : remainingPhotos });
       },
     });
@@ -453,7 +581,7 @@ export function AdminApp() {
           <p className="eyebrow">ANA STYLING</p>
           <h1>Studio</h1>
         </div>
-        {(["Dashboard", "Portfolio", "Services", "Publications", "Site Text"] as View[]).map((item) => (
+        {(["Dashboard", "Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((item) => (
           <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => setActive(item)}>
             {item}
           </button>
@@ -468,12 +596,24 @@ export function AdminApp() {
       </aside>
 
       <section className="admin-content">
-        {saveError && <div className="admin-save-error" role="alert">{saveError}</div>}
+        <div className={`admin-save-status ${saveStatus}`}>
+          <span>{saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
+          {saveStatus === "error" && <button type="button" onClick={retrySave}>Retry</button>}
+          <a href={pageHref("/")} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
+        </div>
         {active === "Dashboard" && (
           <div className="admin-view">
             <div className="admin-hero">
-              <div><p className="eyebrow">Dashboard</p><h2>Your portfolio, ready for clients.</h2></div>
-              <button className="button primary" type="button" onClick={addItem}>Add new work</button>
+              <div><p className="eyebrow">ANA STYLING</p><h2>What would you like to update?</h2></div>
+              <a className="button primary" href={pageHref("/")} target="_blank" rel="noreferrer">Preview website</a>
+            </div>
+            <div className="cms-section-grid">
+              {(["Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((section) => (
+                <button className="cms-section-card" key={section} type="button" onClick={() => setActive(section)}>
+                  <span>{section}</span>
+                  <small>{section === "Portfolio" ? `${portfolioPhotos.length} photos` : section === "Services" ? `${services.length} services` : section === "Publications" ? `${publications.length} covers` : "Edit section"}</small>
+                </button>
+              ))}
             </div>
             <div className="metric-grid">
               <article><strong>{items.length}</strong><span>Portfolio pieces</span></article>
@@ -491,25 +631,55 @@ export function AdminApp() {
         {active === "Portfolio" && (
           <div className="admin-view">
             <div className="admin-heading">
-              <div><p className="eyebrow">Portfolio Manager</p><h2>Arrange and publish work</h2></div>
-              <button className="button primary" type="button" onClick={addItem}>Add Portfolio Item</button>
+              <div><p className="eyebrow">Portfolio</p><h2>Tap a photo to manage it</h2></div>
+              <label className="button primary upload-button">+ Add photos<input multiple type="file" accept="image/*" onChange={addPortfolioPhotos} /></label>
             </div>
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDrag}>
-              <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-                <div className="portfolio-manager">
-                  {items.map((item) => (
-                    <SortablePortfolioRow
-                      item={item}
-                      key={item.id}
-                      onDelete={() => deleteItem(item.id)}
-                      onDuplicate={() => duplicateItem(item)}
-                      onEdit={() => openEditor(item.id)}
-                      onTogglePublish={() => updateItem(item.id, { published: !item.published })}
-                    />
-                  ))}
+            <div className="photo-app-grid">
+              {portfolioPhotos.map(({ item, image }) => (
+                <button className={`photo-app-tile ${selectedPhoto?.imageId === image.id ? "active" : ""} ${image.hidden ? "is-hidden" : ""}`} key={`${item.id}-${image.id}`} type="button" onClick={() => setSelectedPhoto({ itemId: item.id, imageId: image.id })}>
+                  <img src={assetSrc(image.url)} alt="" />
+                  <span>{item.category}</span>
+                </button>
+              ))}
+            </div>
+            {selectedPhotoData && (
+              <section className="photo-action-panel">
+                <img src={assetSrc(selectedPhotoData.image.url)} alt="" />
+                <div>
+                  <strong>{text(selectedPhotoData.item.title, contentLanguage)}</strong>
+                  <label>Category<select value={selectedPhotoData.item.category} onChange={(event) => updateItem(selectedPhotoData.item.id, { category: event.target.value as PortfolioCategory })}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
+                  <label>Size<select value={selectedPhotoData.image.size} onChange={(event) => updateImage(selectedPhotoData.item.id, selectedPhotoData.image.id, { size: event.target.value as PortfolioImageSize })}>{imageSizes.map((size) => <option key={size}>{size}</option>)}</select></label>
                 </div>
-              </SortableContext>
-            </DndContext>
+                <div className="admin-card-actions">
+                  <label>Replace<input type="file" accept="image/*" onChange={(event) => replaceImage(selectedPhotoData.item.id, selectedPhotoData.image.id, event)} /></label>
+                  <button type="button" onClick={() => updateImage(selectedPhotoData.item.id, selectedPhotoData.image.id, { hidden: !selectedPhotoData.image.hidden })}>{selectedPhotoData.image.hidden ? "Publish" : "Hide"}</button>
+                  <button type="button" onClick={() => chooseCover(selectedPhotoData.item.id, selectedPhotoData.image.id)}>Cover</button>
+                  <button type="button" onClick={() => movePhoto(selectedPhotoData.item.id, selectedPhotoData.image.id, -1)}>Move up</button>
+                  <button type="button" onClick={() => movePhoto(selectedPhotoData.item.id, selectedPhotoData.image.id, 1)}>Move down</button>
+                  <button type="button" onClick={() => openEditor(selectedPhotoData.item.id)}>Edit work</button>
+                  <button type="button" onClick={() => deleteImage(selectedPhotoData.item.id, selectedPhotoData.image)}>Delete</button>
+                </div>
+              </section>
+            )}
+            <details className="portfolio-story-list">
+              <summary>Manage portfolio stories</summary>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDrag}>
+                <SortableContext items={items.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                  <div className="portfolio-manager">
+                    {items.map((item) => (
+                      <SortablePortfolioRow
+                        item={item}
+                        key={item.id}
+                        onDelete={() => deleteItem(item.id)}
+                        onDuplicate={() => duplicateItem(item)}
+                        onEdit={() => openEditor(item.id)}
+                        onTogglePublish={() => updateItem(item.id, { published: !item.published })}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </details>
           </div>
         )}
 
@@ -574,23 +744,58 @@ export function AdminApp() {
           </div>
         )}
 
+        {(["Home", "About", "Contact"] as View[]).includes(active) && (
+          <div className="admin-view simple-editor-view">
+            <div className="admin-heading">
+              <div><p className="eyebrow">{active}</p><h2>{active === "Home" ? "Home text and main photo" : active === "About" ? "About Ana" : "Contact form text"}</h2></div>
+              <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
+            </div>
+            <section className="editor-form editor-panel compact-panel">
+              {active === "Home" && (
+                <>
+                  <div className="hero-image-admin">
+                    <img src={assetSrc(data.content.homepage.heroImage)} alt="" />
+                    <label className="upload-zone">Replace main photo<input type="file" accept="image/*" onChange={replaceHeroImage} /><span>First screen photo.</span></label>
+                  </div>
+                  <label>Main headline<input value={text(data.content.homepage.heroNote, contentLanguage)} onChange={(event) => updateContentField("homepage", "heroNote", contentLanguage, event.target.value)} /></label>
+                  <label>Small text<textarea rows={4} value={text(data.content.homepage.positioning, contentLanguage)} onChange={(event) => updateContentField("homepage", "positioning", contentLanguage, event.target.value)} /></label>
+                </>
+              )}
+              {active === "About" && (
+                <>
+                  <label>Main headline<input value={text(data.content.about.headline, contentLanguage)} onChange={(event) => updateContentField("about", "headline", contentLanguage, event.target.value)} /></label>
+                  <label>About text<textarea rows={12} value={text(data.content.about.body, contentLanguage)} onChange={(event) => updateContentField("about", "body", contentLanguage, event.target.value)} /></label>
+                  <label>Small text<textarea rows={4} value={text(data.content.about.note, contentLanguage)} onChange={(event) => updateContentField("about", "note", contentLanguage, event.target.value)} /></label>
+                </>
+              )}
+              {active === "Contact" && (
+                <>
+                  <label>Main headline<input value={text(data.content.contact.headline, contentLanguage)} onChange={(event) => updateContentField("contact", "headline", contentLanguage, event.target.value)} /></label>
+                  <label>Contact text<textarea rows={5} value={text(data.content.contact.body, contentLanguage)} onChange={(event) => updateContentField("contact", "body", contentLanguage, event.target.value)} /></label>
+                </>
+              )}
+            </section>
+          </div>
+        )}
+
         {active === "Services" && (
           <div className="admin-view">
-            <div className="admin-heading"><div><p className="eyebrow">Services</p><h2>Edit your offers</h2></div></div>
-            <div className="admin-list">
-              {[...data.services].sort((a, b) => a.order - b.order).map((service) => (
-                <article className="service-edit" key={service.id}>
-                  <div className="service-image-editor">
-                    <img src={assetSrc(service.image)} alt="" />
-                    <label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replaceServiceImage(service.id, event)} /></label>
-                  </div>
+            <div className="admin-heading"><div><p className="eyebrow">Services</p><h2>Choose a service to edit</h2></div><button className="button primary" type="button" onClick={addService}>Add service</button></div>
+            <div className="cms-card-grid">
+              {services.map((service) => (
+                <article className="cms-item-card" key={service.id}>
+                  <img src={assetSrc(service.image)} alt="" />
                   <div>
-                    <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
-                    <label>Service name {contentLanguage.toUpperCase()}<input value={text(service.title, contentLanguage)} onChange={(event) => updateLocalizedService(service.id, "title", contentLanguage, event.target.value)} /></label>
-                    <label>Description {contentLanguage.toUpperCase()}<textarea value={text(service.description, contentLanguage)} rows={3} onChange={(event) => updateLocalizedService(service.id, "description", contentLanguage, event.target.value)} /></label>
-                    <label>Group<select value={service.group} onChange={(event) => updateService(service.id, { group: event.target.value as ServiceGroup })}>{serviceGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
-                    <label>Price / note<input value={service.price ? text(service.price, contentLanguage) : ""} onChange={(event) => updateService(service.id, { price: { ...localized(service.price ?? ""), [contentLanguage]: event.target.value } })} /></label>
-                    <label className="toggle"><input checked={service.published} type="checkbox" onChange={(event) => updateService(service.id, { published: event.target.checked })} /> Show on website</label>
+                    <strong>{text(service.title, contentLanguage)}</strong>
+                    <span>{service.price ? text(service.price, contentLanguage) : "No price"}</span>
+                    <small>{service.published ? "Visible on website" : "Hidden"}</small>
+                  </div>
+                  <div className="admin-card-actions">
+                    <button type="button" onClick={() => openServiceEditor(service.id)}>Edit</button>
+                    <button type="button" onClick={() => moveService(service.id, -1)}>Move up</button>
+                    <button type="button" onClick={() => moveService(service.id, 1)}>Move down</button>
+                    <button type="button" onClick={() => duplicateService(service)}>Duplicate</button>
+                    <button type="button" onClick={() => deleteService(service.id)}>Delete</button>
                   </div>
                 </article>
               ))}
@@ -598,63 +803,58 @@ export function AdminApp() {
           </div>
         )}
 
-        {active === "Publications" && (
-          <div className="admin-view">
-            <div className="admin-heading">
-              <div><p className="eyebrow">Publications</p><h2>Manage covers</h2></div>
-              <button className="button primary" type="button" onClick={addPublication}>Add Publication</button>
-            </div>
-            <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePublicationDrag}>
-              <SortableContext items={publications.map((publication) => publication.id)} strategy={verticalListSortingStrategy}>
-                <div className="admin-list">
-                  {publications.map((publication) => (
-                    <SortablePublicationRow
-                      contentLanguage={contentLanguage}
-                      key={publication.id}
-                      publication={publication}
-                      onDelete={() => deletePublication(publication.id)}
-                      onReplace={(event) => replacePublicationImage(publication.id, event)}
-                      onTitle={(value) => updateLocalizedPublication(publication.id, contentLanguage, value)}
-                      onToggle={() => updatePublication(publication.id, { published: !publication.published })}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+        {active === "Service Editor" && editingService && (
+          <div className="admin-view simple-editor-view">
+            <div className="admin-heading"><div><p className="eyebrow">Service</p><h2>{text(editingService.title, contentLanguage)}</h2></div><LanguageTabs language={contentLanguage} onChange={setContentLanguage} /></div>
+            <section className="editor-form editor-panel compact-panel">
+              <div className="service-image-editor"><img src={assetSrc(editingService.image)} alt="" /><label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replaceServiceImage(editingService.id, event)} /></label></div>
+              <label>Name<input value={text(editingService.title, contentLanguage)} onChange={(event) => updateLocalizedService(editingService.id, "title", contentLanguage, event.target.value)} /></label>
+              <label>Description<textarea value={text(editingService.description, contentLanguage)} rows={5} onChange={(event) => updateLocalizedService(editingService.id, "description", contentLanguage, event.target.value)} /></label>
+              <label>Price<input value={editingService.price ? text(editingService.price, contentLanguage) : ""} onChange={(event) => updateService(editingService.id, { price: { ...localized(editingService.price ?? ""), [contentLanguage]: event.target.value } })} /></label>
+              <label>Category<select value={editingService.group} onChange={(event) => updateService(editingService.id, { group: event.target.value as ServiceGroup })}>{serviceGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
+              <label className="toggle"><input checked={editingService.published} type="checkbox" onChange={(event) => updateService(editingService.id, { published: event.target.checked })} /> Visible on website</label>
+              <div className="editor-actions"><button className="button" type="button" onClick={() => setActive("Services")}>Back</button><button className="button primary" type="button" onClick={retrySave}>{saveStatus === "saving" ? "Saving…" : "Save"}</button></div>
+            </section>
           </div>
         )}
 
-        {active === "Site Text" && (
+        {active === "Publications" && (
           <div className="admin-view">
-            <div className="admin-heading"><div><p className="eyebrow">Website Text</p><h2>Edit the main pages</h2></div></div>
-            <div className="content-editor-grid">
-              <section className="editor-form editor-panel">
-                <h3>Homepage</h3>
-                <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
-                <div className="hero-image-admin">
-                  <img src={assetSrc(data.content.homepage.heroImage)} alt="" />
-                  <label className="upload-zone">Replace hero photo<input type="file" accept="image/*" onChange={replaceHeroImage} /><span>This photo appears on the first screen of the website.</span></label>
-                </div>
-                <label>Main message {contentLanguage.toUpperCase()}<textarea rows={4} value={text(data.content.homepage.positioning, contentLanguage)} onChange={(event) => updateContentField("homepage", "positioning", contentLanguage, event.target.value)} /></label>
-                <label>Small hero note {contentLanguage.toUpperCase()}<input value={text(data.content.homepage.heroNote, contentLanguage)} onChange={(event) => updateContentField("homepage", "heroNote", contentLanguage, event.target.value)} /></label>
-              </section>
-              <section className="editor-form editor-panel">
-                <h3>About</h3>
-                <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
-                <label>Headline {contentLanguage.toUpperCase()}<input value={text(data.content.about.headline, contentLanguage)} onChange={(event) => updateContentField("about", "headline", contentLanguage, event.target.value)} /></label>
-                <label>Story {contentLanguage.toUpperCase()}<textarea rows={5} value={text(data.content.about.body, contentLanguage)} onChange={(event) => updateContentField("about", "body", contentLanguage, event.target.value)} /></label>
-                <label>Supporting note {contentLanguage.toUpperCase()}<textarea rows={3} value={text(data.content.about.note, contentLanguage)} onChange={(event) => updateContentField("about", "note", contentLanguage, event.target.value)} /></label>
-              </section>
-              <section className="editor-form editor-panel">
-                <h3>Contact</h3>
-                <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
-                <label>Headline {contentLanguage.toUpperCase()}<input value={text(data.content.contact.headline, contentLanguage)} onChange={(event) => updateContentField("contact", "headline", contentLanguage, event.target.value)} /></label>
-                <label>Short text {contentLanguage.toUpperCase()}<textarea rows={4} value={text(data.content.contact.body, contentLanguage)} onChange={(event) => updateContentField("contact", "body", contentLanguage, event.target.value)} /></label>
-              </section>
+            <div className="admin-heading">
+              <div><p className="eyebrow">Publications</p><h2>Magazine covers</h2></div>
+              <button className="button primary" type="button" onClick={addPublication}>Add Publication</button>
+            </div>
+            <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
+            <div className="cms-card-grid publication-cms-grid">
+              {publications.map((publication) => (
+                <article className="cms-item-card publication-cms-card" key={publication.id}>
+                  <img src={assetSrc(publication.image)} alt="" />
+                  <div><strong>{text(publication.title, contentLanguage)}</strong><small>{publication.published ? "Visible on website" : "Hidden"}</small></div>
+                  <div className="admin-card-actions">
+                    <button type="button" onClick={() => openPublicationEditor(publication.id)}>Edit</button>
+                    <button type="button" onClick={() => movePublication(publication.id, -1)}>Move up</button>
+                    <button type="button" onClick={() => movePublication(publication.id, 1)}>Move down</button>
+                    <button type="button" onClick={() => updatePublication(publication.id, { published: !publication.published })}>{publication.published ? "Hide" : "Publish"}</button>
+                    <button type="button" onClick={() => deletePublication(publication.id)}>Delete</button>
+                  </div>
+                </article>
+              ))}
             </div>
           </div>
         )}
+
+        {active === "Publication Editor" && editingPublication && (
+          <div className="admin-view simple-editor-view">
+            <div className="admin-heading"><div><p className="eyebrow">Publication</p><h2>{text(editingPublication.title, contentLanguage)}</h2></div><LanguageTabs language={contentLanguage} onChange={setContentLanguage} /></div>
+            <section className="editor-form editor-panel compact-panel">
+              <div className="service-image-editor publication-image-editor"><img src={assetSrc(editingPublication.image)} alt="" /><label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replacePublicationImage(editingPublication.id, event)} /></label></div>
+              <label>Title<input value={text(editingPublication.title, contentLanguage)} onChange={(event) => updateLocalizedPublication(editingPublication.id, contentLanguage, event.target.value)} /></label>
+              <label className="toggle"><input checked={editingPublication.published} type="checkbox" onChange={(event) => updatePublication(editingPublication.id, { published: event.target.checked })} /> Visible on website</label>
+              <div className="editor-actions"><button className="button" type="button" onClick={() => setActive("Publications")}>Back</button><button className="button primary" type="button" onClick={retrySave}>{saveStatus === "saving" ? "Saving…" : "Save"}</button></div>
+            </section>
+          </div>
+        )}
+
       </section>
 
       {confirm && (
@@ -759,32 +959,6 @@ function PortfolioPreview({ item }: { item: PortfolioItem }) {
         {images.map((image) => <img className={`preview-${image.size.toLowerCase()}`} key={image.id} src={assetSrc(image.url)} alt="" />)}
       </div>
     </section>
-  );
-}
-
-function SortablePublicationRow(props: {
-  contentLanguage: Language;
-  publication: Publication;
-  onDelete: () => void;
-  onReplace: (event: ChangeEvent<HTMLInputElement>) => void;
-  onTitle: (value: string) => void;
-  onToggle: () => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.publication.id });
-
-  return (
-    <article className={`service-edit ${isDragging ? "dragging" : ""}`} ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}>
-      <img src={assetSrc(props.publication.image)} alt="" />
-      <div>
-        <button className="drag-handle" type="button" {...attributes} {...listeners} aria-label={`Reorder ${text(props.publication.title, "en")}`}>Drag</button>
-        <label>Publication title {props.contentLanguage.toUpperCase()}<input value={text(props.publication.title, props.contentLanguage)} onChange={(event) => props.onTitle(event.target.value)} /></label>
-        <label>Image<input type="file" accept="image/*" onChange={props.onReplace} /></label>
-        <div className="admin-card-actions">
-          <button type="button" onClick={props.onToggle}>{props.publication.published ? "Hide" : "Publish"}</button>
-          <button type="button" onClick={props.onDelete}>Delete</button>
-        </div>
-      </div>
-    </article>
   );
 }
 

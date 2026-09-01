@@ -10,6 +10,15 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
 
 export const supabase = isSupabaseConfigured ? createClient(supabaseUrl!, supabaseAnonKey!) : null;
 
+export type RemoteStudioData = {
+  data: StudioData;
+  updatedAt: string;
+};
+
+export type StudioSaveResult =
+  | { ok: true; data: StudioData; updatedAt: string }
+  | { ok: false; message: string };
+
 export async function getAdminSession() {
   if (!supabase) return null;
 
@@ -66,7 +75,7 @@ export async function loadStudioDataFromSupabase() {
 
   const { data, error } = await supabase
     .from("studio_sites")
-    .select("content")
+    .select("id, content, updated_at")
     .eq("id", studioId)
     .maybeSingle();
 
@@ -75,26 +84,45 @@ export async function loadStudioDataFromSupabase() {
     return null;
   }
 
-  return (data?.content as StudioData | null) ?? null;
+  if (!data || data.id !== studioId || !data.content) return null;
+
+  return {
+    data: data.content as StudioData,
+    updatedAt: String(data.updated_at ?? ""),
+  } satisfies RemoteStudioData;
 }
 
-export async function saveStudioDataToSupabase(data: StudioData) {
-  if (!supabase) return true;
+export async function saveStudioDataToSupabase(data: StudioData): Promise<StudioSaveResult> {
+  const updatedAt = new Date().toISOString();
 
-  const { error } = await supabase
+  if (!supabase) return { ok: true, data, updatedAt };
+
+  const { data: row, error } = await supabase
     .from("studio_sites")
     .upsert({
       id: studioId,
       content: data,
-      updated_at: new Date().toISOString(),
-    });
+      updated_at: updatedAt,
+    }, { onConflict: "id" })
+    .select("id, content, updated_at")
+    .eq("id", studioId)
+    .single();
 
   if (error) {
     console.error("Ana Styling could not save Supabase studio data.", error);
-    return false;
+    return { ok: false, message: "Couldn’t save — Retry" };
   }
 
-  return true;
+  if (!row || row.id !== studioId || !row.content) {
+    console.error("Ana Styling save verification failed.", row);
+    return { ok: false, message: "Couldn’t save — Retry" };
+  }
+
+  return {
+    ok: true,
+    data: row.content as StudioData,
+    updatedAt: String(row.updated_at ?? updatedAt),
+  };
 }
 
 export async function uploadStudioImage(file: File, folder: string) {

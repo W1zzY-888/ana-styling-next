@@ -50,6 +50,14 @@ After creating at least one admin user, open `/admin`, sign in, make one small t
 
 If you prefer to seed from SQL instead, insert a JSON export into `studio_sites.content`.
 
+The app writes only the row with:
+
+```text
+studio_sites.id = ana-styling
+```
+
+Every save updates `updated_at` and verifies the returned row before the admin shows `Saved`. If Supabase rejects the write, the admin shows `Couldn’t save — Retry` instead of pretending the change is synced.
+
 ## 5. Add GitHub Secrets
 
 In GitHub:

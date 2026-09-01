@@ -5496,3 +5496,386 @@ h3,
     font-size: clamp(2.8rem, 12vw, 5rem) !important;
   }
 }
+
+/* Owner CMS pass: mobile-first, tap-friendly, explicit saving feedback. */
+.admin-save-status {
+  align-items: center;
+  background: rgba(255, 252, 247, 0.94);
+  border: 1px solid rgba(151, 29, 43, 0.18);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  min-height: 52px;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.admin-save-status span,
+.admin-save-status a,
+.admin-save-status button {
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-save-status.saving span,
+.admin-save-status.error span,
+.admin-save-status button,
+.admin-save-status a {
+  color: var(--wine);
+}
+
+.admin-save-status.error {
+  border-color: var(--wine);
+}
+
+.admin-save-status button,
+.admin-save-status a {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+  min-height: 34px;
+  padding: 0;
+}
+
+.cms-section-grid,
+.cms-card-grid,
+.photo-app-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.cms-section-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cms-section-card,
+.cms-item-card,
+.photo-action-panel {
+  background: var(--white);
+  border: 1px solid rgba(151, 29, 43, 0.16);
+  box-shadow: 0 12px 34px rgba(35, 31, 28, 0.05);
+}
+
+.cms-section-card {
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 132px;
+  padding: 22px;
+  text-align: left;
+}
+
+.cms-section-card span,
+.cms-item-card strong,
+.photo-action-panel strong {
+  display: block;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: clamp(1.75rem, 3vw, 3rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.cms-section-card small,
+.cms-item-card small,
+.cms-item-card span {
+  color: var(--muted);
+  display: block;
+  margin-top: 8px;
+}
+
+.cms-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.cms-item-card {
+  display: grid;
+  gap: 14px;
+  padding: 12px;
+}
+
+.cms-item-card > img,
+.service-image-editor img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  width: 100%;
+}
+
+.publication-cms-card > img,
+.publication-image-editor img {
+  aspect-ratio: 3 / 4;
+}
+
+.upload-button {
+  cursor: pointer;
+  text-align: center;
+}
+
+.upload-button input,
+.upload-zone input,
+.image-replace-button input,
+.photo-action-panel input {
+  display: none;
+}
+
+.photo-app-grid {
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.photo-app-tile {
+  background: var(--white);
+  border: 1px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.photo-app-tile.active {
+  border-color: var(--wine);
+  box-shadow: 0 0 0 3px rgba(151, 29, 43, 0.14);
+}
+
+.photo-app-tile.is-hidden img {
+  filter: grayscale(1);
+  opacity: 0.46;
+}
+
+.photo-app-tile img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  width: 100%;
+}
+
+.photo-app-tile span {
+  background: rgba(35, 31, 28, 0.74);
+  bottom: 0;
+  color: var(--white);
+  font-size: 0.66rem;
+  left: 0;
+  letter-spacing: 0.12em;
+  padding: 7px 8px;
+  position: absolute;
+  right: 0;
+  text-transform: uppercase;
+}
+
+.photo-action-panel {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 140px minmax(200px, 1fr) minmax(280px, 1fr);
+  margin-top: 18px;
+  padding: 14px;
+}
+
+.photo-action-panel > img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  width: 100%;
+}
+
+.portfolio-story-list {
+  margin-top: 20px;
+}
+
+.portfolio-story-list summary {
+  cursor: pointer;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  min-height: 44px;
+  text-transform: uppercase;
+}
+
+.compact-panel {
+  max-width: 820px;
+}
+
+.image-replace-button {
+  align-items: center;
+  border: 1px solid rgba(151, 29, 43, 0.28);
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  margin-top: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+}
+
+.button.primary,
+.admin-sidebar .active {
+  background: var(--wine);
+  border-color: var(--wine);
+  color: var(--white);
+}
+
+.admin-card-actions button,
+.admin-card-actions label {
+  align-items: center;
+  background: rgba(151, 29, 43, 0.06);
+  border: 1px solid rgba(151, 29, 43, 0.18);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.74rem;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+.public-site {
+  overflow-x: clip;
+}
+
+.fashion-services.full-page-section {
+  padding-top: max(96px, calc(74px + env(safe-area-inset-top) + 22px)) !important;
+}
+
+.services-intro h2,
+.runway-service h3,
+.runway-service h4 {
+  font-family: var(--font-condensed), var(--font-display), Georgia, serif !important;
+  letter-spacing: 0.01em !important;
+}
+
+.runway-service h3,
+.runway-service h4,
+.runway-service p,
+.runway-service strong {
+  max-width: none !important;
+}
+
+@media (max-width: 1024px) {
+  .cms-section-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .photo-action-panel {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+
+  .photo-action-panel .admin-card-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .admin-shell {
+    display: block;
+    padding-bottom: 92px;
+  }
+
+  .admin-sidebar {
+    background: rgba(35, 31, 28, 0.96);
+    bottom: 0;
+    display: grid;
+    gap: 8px;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(92px, 1fr);
+    left: 0;
+    overflow-x: auto;
+    padding: 10px max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+    position: fixed;
+    right: 0;
+    top: auto;
+    z-index: 90;
+  }
+
+  .admin-sidebar > div {
+    display: none;
+  }
+
+  .admin-sidebar button,
+  .admin-sidebar a {
+    min-height: 50px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .admin-content {
+    padding: 14px 14px 96px;
+  }
+
+  .cms-section-grid,
+  .cms-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cms-section-card {
+    min-height: 104px;
+  }
+
+  .photo-app-grid {
+    gap: 6px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .photo-action-panel {
+    bottom: 84px;
+    grid-template-columns: 86px 1fr;
+    left: 10px;
+    max-height: 48svh;
+    overflow: auto;
+    position: fixed;
+    right: 10px;
+    z-index: 80;
+  }
+
+  .photo-action-panel .admin-card-actions,
+  .editor-actions,
+  .admin-card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .photo-action-panel .admin-card-actions {
+    grid-column: 1 / -1;
+  }
+
+  .admin-heading .primary {
+    width: 100%;
+  }
+
+  .runway-service,
+  .runway-service:nth-child(even) {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .runway-service figure {
+    grid-column: 2;
+    max-width: 100%;
+  }
+
+  .runway-service > div {
+    grid-column: 1 / -1;
+  }
+
+  .runway-service h3,
+  .runway-service h4 {
+    font-size: clamp(2.4rem, 13vw, 4.2rem) !important;
+    line-height: 0.92 !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .photo-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-hero,
+  .editor-panel,
+  .metric-grid article,
+  .cms-item-card {
+    padding: 16px;
+  }
+
+  .cms-section-card span,
+  .cms-item-card strong {
+    font-size: 2rem;
+  }
+}

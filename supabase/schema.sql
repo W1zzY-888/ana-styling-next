@@ -15,7 +15,8 @@ using (user_id = auth.uid());
 create table if not exists public.studio_sites (
   id text primary key,
   content jsonb not null,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint studio_sites_only_ana_styling check (id = 'ana-styling')
 );
 
 alter table public.studio_sites enable row level security;

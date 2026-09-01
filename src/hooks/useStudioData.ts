@@ -1,25 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type StudioData } from "@/data/site";
 import { loadStudioData, saveStudioData } from "@/lib/studio-store";
 import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
 
+export type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 export function useStudioData() {
   const [data, setData] = useState<StudioData>(() => loadStudioData());
   const [saveError, setSaveError] = useState("");
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isSyncing, setIsSyncing] = useState(false);
+  const lastLocalEditRef = useRef(0);
+  const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef<StudioData | null>(null);
+  const failedSaveRef = useRef<StudioData | null>(null);
+
+  const flushSaveQueue = useCallback(async () => {
+    if (isSavingRef.current) return;
+    isSavingRef.current = true;
+
+    while (pendingSaveRef.current) {
+      const snapshot = pendingSaveRef.current;
+      pendingSaveRef.current = null;
+      setSaveStatus("saving");
+      setSaveError("");
+
+      const result = await saveStudioDataToSupabase(snapshot);
+
+      if (!result.ok) {
+        failedSaveRef.current = snapshot;
+        setSaveStatus("error");
+        setSaveError(result.message);
+        break;
+      }
+
+      failedSaveRef.current = null;
+      saveStudioData(result.data);
+      setData(result.data);
+      setSaveStatus("saved");
+    }
+
+    isSavingRef.current = false;
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
+    const remoteLoadStartedAt = Date.now();
 
     async function syncRemoteData() {
       setIsSyncing(true);
-      const remoteData = await loadStudioDataFromSupabase();
+      const remote = await loadStudioDataFromSupabase();
 
-      if (remoteData && isMounted) {
-        saveStudioData(remoteData);
-        setData(remoteData);
+      if (remote && isMounted && lastLocalEditRef.current <= remoteLoadStartedAt) {
+        saveStudioData(remote.data);
+        setData(remote.data);
       }
 
       if (isMounted) setIsSyncing(false);
@@ -48,15 +84,21 @@ export function useStudioData() {
   }, []);
 
   function updateData(updater: (current: StudioData) => StudioData) {
-    const next = updater(data);
-    const saved = saveStudioData(next);
-
-    setData(next);
-    setSaveError(saved ? "" : "This change could not be saved on this device. Please use a smaller image and try again.");
-    saveStudioDataToSupabase(next).then((remoteSaved) => {
-      if (!remoteSaved) setSaveError("This change could not be saved online. Please try again.");
+    setData((current) => {
+      const next = updater(current);
+      lastLocalEditRef.current = Date.now();
+      pendingSaveRef.current = next;
+      saveStudioData(next);
+      void flushSaveQueue();
+      return next;
     });
   }
 
-  return { data, isSyncing, saveError, updateData };
+  function retrySave() {
+    if (!failedSaveRef.current) return;
+    pendingSaveRef.current = failedSaveRef.current;
+    void flushSaveQueue();
+  }
+
+  return { data, isSyncing, retrySave, saveError, saveStatus, updateData };
 }
