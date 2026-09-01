@@ -5414,7 +5414,6 @@ h3,
 
 .services-intro h2,
 .portfolio-title-row h2,
-.contact-copy h2,
 .fashion-services.full-page-section .services-intro h2,
 .fashion-portfolio.full-page-section .portfolio-title-row h2,
 .publications-section.full-page-section .portfolio-title-row h2 {
@@ -5442,7 +5441,6 @@ h3,
 @media (max-width: 900px) {
   .services-intro h2,
   .portfolio-title-row h2,
-  .contact-copy h2,
   .fashion-services.full-page-section .services-intro h2,
   .fashion-portfolio.full-page-section .portfolio-title-row h2,
   .publications-section.full-page-section .portfolio-title-row h2 {
@@ -5471,5 +5469,21 @@ h3,
   .campaign-copy {
     margin-bottom: 56px !important;
     margin-left: 24px !important;
+  }
+}
+
+/* Contact title must stay readable in both languages. */
+.contact-copy h2 {
+  font-family: var(--font-display), Georgia, serif !important;
+  font-size: clamp(3.1rem, 6.2vw, 7rem) !important;
+  line-height: 0.96 !important;
+  letter-spacing: 0 !important;
+  max-width: min(620px, 100%) !important;
+  text-transform: none !important;
+}
+
+@media (max-width: 900px) {
+  .contact-copy h2 {
+    font-size: clamp(2.8rem, 12vw, 5rem) !important;
   }
 }

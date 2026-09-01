@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, type FormEvent, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   closestCenter,
   DndContext,
@@ -125,7 +124,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
         </label>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
         <button className="button primary" type="submit">Enter Studio</button>
-        <Link href={pageHref("/")}>Back to website</Link>
+        <a href={pageHref("/")}>Back to website</a>
       </form>
     </main>
   );
@@ -425,7 +424,7 @@ export function AdminApp() {
           </button>
         ))}
         <button type="button" onClick={addItem}>Add new work</button>
-        <Link href={pageHref("/")}>View website</Link>
+        <a href={pageHref("/")}>View website</a>
         <button type="button" onClick={() => {
           window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
           setIsUnlocked(false);
