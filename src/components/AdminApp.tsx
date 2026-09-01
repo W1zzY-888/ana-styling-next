@@ -26,6 +26,7 @@ import {
 } from "@/data/site";
 import { useStudioData } from "@/hooks/useStudioData";
 import { localized, text } from "@/lib/i18n";
+import { isSupabaseConfigured, uploadStudioImage } from "@/lib/supabase-studio";
 
 type View = "Dashboard" | "Portfolio" | "Editor" | "Services" | "Publications" | "Site Text";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
@@ -87,6 +88,15 @@ async function fileToDataUrl(file: File) {
   } finally {
     URL.revokeObjectURL(sourceUrl);
   }
+}
+
+async function fileToStudioUrl(file: File, folder: string) {
+  if (isSupabaseConfigured) {
+    const remoteUrl = await uploadStudioImage(file, folder);
+    if (remoteUrl) return remoteUrl;
+  }
+
+  return fileToDataUrl(file);
 }
 
 async function hashPassword(value: string) {
@@ -216,7 +226,7 @@ export function AdminApp() {
   async function replaceHeroImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const url = await fileToDataUrl(file);
+    const url = await fileToStudioUrl(file, "hero");
 
     updateData((current) => ({
       ...current,
@@ -330,7 +340,7 @@ export function AdminApp() {
     if (!files.length) return;
     const item = data.portfolioItems.find((portfolioItem) => portfolioItem.id === id);
     const start = item?.images.length ?? 0;
-    const urls = await Promise.all(files.map(fileToDataUrl));
+    const urls = await Promise.all(files.map((file) => fileToStudioUrl(file, `portfolio/${id}`)));
     const previews = files.map((file, index): PortfolioImage => ({
       id: createId(`${id}-photo-${index + 1}`),
       url: urls[index],
@@ -360,21 +370,21 @@ export function AdminApp() {
   async function replaceImage(itemId: string, imageId: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updateImage(itemId, imageId, { url: await fileToDataUrl(file), alt: file.name, hidden: false });
+    updateImage(itemId, imageId, { url: await fileToStudioUrl(file, `portfolio/${itemId}`), alt: file.name, hidden: false });
     event.target.value = "";
   }
 
   async function replacePublicationImage(id: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updatePublication(id, { image: await fileToDataUrl(file) });
+    updatePublication(id, { image: await fileToStudioUrl(file, "publications") });
     event.target.value = "";
   }
 
   async function replaceServiceImage(id: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updateService(id, { image: await fileToDataUrl(file) });
+    updateService(id, { image: await fileToStudioUrl(file, `services/${id}`) });
     event.target.value = "";
   }
 
