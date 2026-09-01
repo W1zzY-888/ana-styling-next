@@ -40,7 +40,7 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const ADMIN_SESSION_KEY = "ana-styling-admin-session";
-const ADMIN_PASSWORD_HASH = "bf366af24016c4a9be8afd52f1fc371eb73837ea245bb71677544b1fe6692198";
+const ADMIN_PASSWORD_HASH = "3dd39ffc3d8bfc14842de959ce31f8ab799e87d2191caa7c32997de2fda8ee89";
 
 function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
