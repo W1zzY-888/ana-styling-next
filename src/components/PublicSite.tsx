@@ -9,8 +9,9 @@ import {
   type Publication,
   type Service,
   type ServiceGroup,
+  type StudioData,
 } from "@/data/site";
-import { useStudioData } from "@/hooks/useStudioData";
+import { usePublicStudioData } from "@/hooks/usePublicStudioData";
 import { text } from "@/lib/i18n";
 
 type PublicPage = "home" | "services" | "portfolio" | "publications";
@@ -135,7 +136,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   const [form, setForm] = useState({ firstName: "", lastName: "", service: "", message: "" });
   const [formNote, setFormNote] = useState("");
   const [year] = useState(() => new Date().getFullYear());
-  const { data } = useStudioData();
+  const { data } = usePublicStudioData();
   const t = dictionary[language];
   const nav = t.nav as string[];
 
@@ -340,7 +341,7 @@ function SiteHeader({ changeLanguage, language, menuOpen, nav, navHref, setMenuO
   );
 }
 
-function Hero({ data, language, t }: { data: ReturnType<typeof useStudioData>["data"]; language: Language; t: Record<string, string | string[]> }) {
+function Hero({ data, language, t }: { data: StudioData; language: Language; t: Record<string, string | string[]> }) {
   return (
     <section id="home" className="campaign-hero">
       <div className="hero-cover-word hero-cover-word-back">{t.heroTitle as string}</div>
@@ -359,7 +360,7 @@ function Hero({ data, language, t }: { data: ReturnType<typeof useStudioData>["d
   );
 }
 
-function About({ data, language, t }: { data: ReturnType<typeof useStudioData>["data"]; language: Language; t: Record<string, string | string[]> }) {
+function About({ data, language, t }: { data: StudioData; language: Language; t: Record<string, string | string[]> }) {
   const aboutParagraphs = text(data.content.about.body, language).split("\n\n").filter(Boolean);
   const intro = aboutParagraphs.slice(0, 2).join(" ");
   const bodyParagraphs = aboutParagraphs.slice(2);
@@ -508,7 +509,7 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
   );
 }
 
-function Contact({ data, form, formNote, language, services, setForm, submitContact, t }: { data: ReturnType<typeof useStudioData>["data"]; form: { firstName: string; lastName: string; service: string; message: string }; formNote: string; language: Language; services: Service[]; setForm: (form: { firstName: string; lastName: string; service: string; message: string }) => void; submitContact: (event: FormEvent<HTMLFormElement>) => void; t: Record<string, string | string[]> }) {
+function Contact({ data, form, formNote, language, services, setForm, submitContact, t }: { data: StudioData; form: { firstName: string; lastName: string; service: string; message: string }; formNote: string; language: Language; services: Service[]; setForm: (form: { firstName: string; lastName: string; service: string; message: string }) => void; submitContact: (event: FormEvent<HTMLFormElement>) => void; t: Record<string, string | string[]> }) {
   const serviceOptions = services.filter((service) => contactServiceIds.has(service.id));
 
   return (
@@ -538,7 +539,7 @@ function Contact({ data, form, formNote, language, services, setForm, submitCont
   );
 }
 
-function Footer({ data, language, nav, navHref, t, year }: { data: ReturnType<typeof useStudioData>["data"]; language: Language; nav: string[]; navHref: (index: number) => string; t: Record<string, string | string[]>; year: number }) {
+function Footer({ data, language, nav, navHref, t, year }: { data: StudioData; language: Language; nav: string[]; navHref: (index: number) => string; t: Record<string, string | string[]>; year: number }) {
   return (
     <footer className="lux-footer">
       <p className="footer-marquee" aria-hidden="true">ANA STYLING</p>

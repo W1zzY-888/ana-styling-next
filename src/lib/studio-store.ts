@@ -51,7 +51,7 @@ export function saveStudioData(data: StudioData) {
   }
 }
 
-function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = false): StudioData {
+export function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = false): StudioData {
   return {
     ...initialStudioData,
     ...value,
