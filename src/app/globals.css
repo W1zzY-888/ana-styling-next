@@ -6691,3 +6691,18 @@ section[id],
     letter-spacing: 0.12em !important;
   }
 }
+
+@media (max-width: 760px) {
+  .admin-sticky-save.is-idle {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transform: translateY(calc(100% + 96px + env(safe-area-inset-bottom))) !important;
+    visibility: hidden !important;
+  }
+
+  .admin-sticky-save.is-visible {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    visibility: visible !important;
+  }
+}
