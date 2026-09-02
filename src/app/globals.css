@@ -6611,3 +6611,13 @@ section[id],
       linear-gradient(165deg, #f7ecdf 0%, #edd4c7 52%, #f7efe4 100%);
   }
 }
+
+@media (min-width: 769px) {
+  .public-site .hero-cover-word-back {
+    left: clamp(48px, 5vw, 96px) !important;
+  }
+
+  .public-site .campaign-copy {
+    left: clamp(48px, 5vw, 96px) !important;
+  }
+}
