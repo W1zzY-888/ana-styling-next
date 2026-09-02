@@ -70,6 +70,9 @@ function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCopy = fa
       contact: {
         headline: localized(value.content?.contact?.headline ?? initialStudioData.content.contact.headline),
         body: localized(value.content?.contact?.body ?? initialStudioData.content.contact.body),
+        whatsappNumber: value.content?.contact?.whatsappNumber ?? initialStudioData.content.contact.whatsappNumber,
+        instagramUrl: value.content?.contact?.instagramUrl ?? initialStudioData.content.contact.instagramUrl,
+        email: value.content?.contact?.email ?? initialStudioData.content.contact.email,
       },
     },
     services: mergeServices(value.services, refreshDefaultCopy),

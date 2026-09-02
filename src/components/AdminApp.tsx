@@ -146,7 +146,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 
 export function AdminApp() {
   const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" || isSupabaseConfigured ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
-  const { data, retrySave, saveError, saveStatus, updateData } = useStudioData();
+  const { data, hasUnsavedChanges, retrySave, saveChanges, saveError, saveStatus, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(data.services[0]?.id ?? null);
@@ -200,6 +200,11 @@ export function AdminApp() {
 
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
+  }
+
+  function navigateTo(view: View) {
+    if (hasUnsavedChanges && !window.confirm("You have unsaved changes. Save before leaving?")) return;
+    setActive(view);
   }
 
   function setItems(nextItems: PortfolioItem[]) {
@@ -329,6 +334,19 @@ export function AdminApp() {
         [section]: {
           ...current.content[section],
           [field]: { ...localized(current.content[section][field as keyof typeof current.content[typeof section]] as LocalizedString), [language]: value },
+        },
+      },
+    }));
+  }
+
+  function updateContactSetting(field: "whatsappNumber" | "instagramUrl" | "email", value: string) {
+    updateData((current) => ({
+      ...current,
+      content: {
+        ...current.content,
+        contact: {
+          ...current.content.contact,
+          [field]: value,
         },
       },
     }));
@@ -582,7 +600,7 @@ export function AdminApp() {
           <h1>Studio</h1>
         </div>
         {(["Dashboard", "Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((item) => (
-          <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => setActive(item)}>
+          <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => navigateTo(item)}>
             {item}
           </button>
         ))}
@@ -597,7 +615,7 @@ export function AdminApp() {
 
       <section className="admin-content">
         <div className={`admin-save-status ${saveStatus}`}>
-          <span>{saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
+          <span>{saveStatus === "dirty" ? "Unsaved changes" : saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
           {saveStatus === "error" && <button type="button" onClick={retrySave}>Retry</button>}
           <a href={pageHref("/")} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
         </div>
@@ -609,7 +627,7 @@ export function AdminApp() {
             </div>
             <div className="cms-section-grid">
               {(["Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((section) => (
-                <button className="cms-section-card" key={section} type="button" onClick={() => setActive(section)}>
+                <button className="cms-section-card" key={section} type="button" onClick={() => navigateTo(section)}>
                   <span>{section}</span>
                   <small>{section === "Portfolio" ? `${portfolioPhotos.length} photos` : section === "Services" ? `${services.length} services` : section === "Publications" ? `${publications.length} covers` : "Edit section"}</small>
                 </button>
@@ -770,6 +788,9 @@ export function AdminApp() {
               )}
               {active === "Contact" && (
                 <>
+                  <label>WhatsApp number<input value={data.content.contact.whatsappNumber} onChange={(event) => updateContactSetting("whatsappNumber", event.target.value)} /></label>
+                  <label>Instagram<input value={data.content.contact.instagramUrl} onChange={(event) => updateContactSetting("instagramUrl", event.target.value)} /></label>
+                  <label>Email<input value={data.content.contact.email} onChange={(event) => updateContactSetting("email", event.target.value)} /></label>
                   <label>Main headline<input value={text(data.content.contact.headline, contentLanguage)} onChange={(event) => updateContentField("contact", "headline", contentLanguage, event.target.value)} /></label>
                   <label>Contact text<textarea rows={5} value={text(data.content.contact.body, contentLanguage)} onChange={(event) => updateContentField("contact", "body", contentLanguage, event.target.value)} /></label>
                 </>
@@ -813,7 +834,7 @@ export function AdminApp() {
               <label>Price<input value={editingService.price ? text(editingService.price, contentLanguage) : ""} onChange={(event) => updateService(editingService.id, { price: { ...localized(editingService.price ?? ""), [contentLanguage]: event.target.value } })} /></label>
               <label>Category<select value={editingService.group} onChange={(event) => updateService(editingService.id, { group: event.target.value as ServiceGroup })}>{serviceGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
               <label className="toggle"><input checked={editingService.published} type="checkbox" onChange={(event) => updateService(editingService.id, { published: event.target.checked })} /> Visible on website</label>
-              <div className="editor-actions"><button className="button" type="button" onClick={() => setActive("Services")}>Back</button><button className="button primary" type="button" onClick={retrySave}>{saveStatus === "saving" ? "Saving…" : "Save"}</button></div>
+              <div className="editor-actions"><button className="button" type="button" onClick={() => navigateTo("Services")}>Back</button></div>
             </section>
           </div>
         )}
@@ -850,7 +871,7 @@ export function AdminApp() {
               <div className="service-image-editor publication-image-editor"><img src={assetSrc(editingPublication.image)} alt="" /><label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replacePublicationImage(editingPublication.id, event)} /></label></div>
               <label>Title<input value={text(editingPublication.title, contentLanguage)} onChange={(event) => updateLocalizedPublication(editingPublication.id, contentLanguage, event.target.value)} /></label>
               <label className="toggle"><input checked={editingPublication.published} type="checkbox" onChange={(event) => updatePublication(editingPublication.id, { published: event.target.checked })} /> Visible on website</label>
-              <div className="editor-actions"><button className="button" type="button" onClick={() => setActive("Publications")}>Back</button><button className="button primary" type="button" onClick={retrySave}>{saveStatus === "saving" ? "Saving…" : "Save"}</button></div>
+              <div className="editor-actions"><button className="button" type="button" onClick={() => navigateTo("Publications")}>Back</button></div>
             </section>
           </div>
         )}
@@ -866,6 +887,12 @@ export function AdminApp() {
           </div>
         </div>
       )}
+
+      <div className="admin-sticky-save">
+        <button className="button primary" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
+          {saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "Retry Save changes" : "Save changes"}
+        </button>
+      </div>
     </main>
   );
 }

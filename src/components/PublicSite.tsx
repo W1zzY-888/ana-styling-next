@@ -21,6 +21,7 @@ const languageKey = "ana-styling-language";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
+const phoneDigits = (value: string) => value.replace(/\D/g, "");
 const contactServiceIds = new Set([
   "event-styling",
   "personal-shopping",
@@ -66,7 +67,7 @@ const dictionary = {
     serviceField: "Service",
     selectService: "Select a service",
     message: "Message",
-    send: "Contact via WhatsApp",
+    send: "CONTACT VIA WHATSAPP",
     validation: "Please add your first name, last name, select a service, and write a message before opening WhatsApp.",
     previous: "Previous",
     next: "Next",
@@ -105,7 +106,7 @@ const dictionary = {
     serviceField: "Услуга",
     selectService: "Выберите услугу",
     message: "Сообщение",
-    send: "Связаться в WhatsApp",
+    send: "СВЯЗАТЬСЯ В WHATSAPP",
     validation: "Укажите имя, фамилию, выберите услугу и напишите сообщение перед открытием WhatsApp.",
     previous: "Назад",
     next: "Вперёд",
@@ -233,7 +234,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
       return;
     }
     setFormNote("");
-    window.open(`https://wa.me/13108040450?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
+    window.open(`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -303,7 +304,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
         </section>
       )}
       {page !== "publications" && page !== "portfolio" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={data} />}
-      <Footer language={language} nav={nav} navHref={navHref} t={t} year={year} />
+      <Footer data={data} language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
         activeLightbox={activeLightbox}
         galleryImagesLength={galleryImages.length}
@@ -521,8 +522,8 @@ function Contact({ data, form, formNote, language, services, setForm, submitCont
         <p>{text(data.content.contact.body, language)}</p>
         <div className="contact-socials" aria-label={t.contactLinks as string}>
           <span>{language === "en" ? "Miami" : "Майами"}</span>
-          <SocialLink kind="instagram" href="https://www.instagram.com/" label="Instagram" />
-        <SocialLink kind="whatsapp" href="https://wa.me/13108040450" label="WhatsApp" />
+          <SocialLink kind="instagram" href={data.content.contact.instagramUrl} label="@aleynikovaa" />
+          <SocialLink kind="whatsapp" href={`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}`} label="WhatsApp" />
         </div>
       </div>
       <form className="contact-form reveal" onSubmit={submitContact} noValidate>
@@ -531,13 +532,13 @@ function Contact({ data, form, formNote, language, services, setForm, submitCont
         <label>{t.serviceField as string}<select value={form.service} onChange={(event) => setForm({ ...form, service: event.target.value })}><option value="">{t.selectService as string}</option>{serviceOptions.map((service) => <option key={service.id} value={service.id}>{text(service.title, language)}</option>)}</select></label>
         <label>{t.message as string}<textarea rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} /></label>
         {formNote && <p className="form-note" role="status">{formNote}</p>}
-        <StylistButton asButton>{t.send as string} →</StylistButton>
+        <StylistButton asButton>{t.send as string}</StylistButton>
       </form>
     </section>
   );
 }
 
-function Footer({ language, nav, navHref, t, year }: { language: Language; nav: string[]; navHref: (index: number) => string; t: Record<string, string | string[]>; year: number }) {
+function Footer({ data, language, nav, navHref, t, year }: { data: ReturnType<typeof useStudioData>["data"]; language: Language; nav: string[]; navHref: (index: number) => string; t: Record<string, string | string[]>; year: number }) {
   return (
     <footer className="lux-footer">
       <p className="footer-marquee" aria-hidden="true">ANA STYLING</p>
@@ -548,12 +549,12 @@ function Footer({ language, nav, navHref, t, year }: { language: Language; nav: 
         <a href={navHref(3)}>{nav[3]}</a>
         <a href={navHref(4)}>{nav[4]}</a>
         <a href={navHref(5)}>{nav[5]}</a>
-        <SocialLink kind="instagram" href="https://www.instagram.com/" label="Instagram" compact />
-        <SocialLink kind="whatsapp" href="https://wa.me/13108040450" label="WhatsApp" compact />
+        <SocialLink kind="instagram" href={data.content.contact.instagramUrl} label="@aleynikovaa" compact />
+        <SocialLink kind="whatsapp" href={`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}`} label="WhatsApp" compact />
       </nav>
       <div className="footer-contact">
-        <span>{t.phone as string} <a href="tel:+13108040450">310-804-0450</a></span>
-        <span>{t.email as string} <a href="mailto:anastyling@gmail.com">anastyling@gmail.com</a></span>
+        <span>{t.phone as string} <a href={`tel:+${phoneDigits(data.content.contact.whatsappNumber)}`}>{data.content.contact.whatsappNumber}</a></span>
+        <span>{t.email as string} <a href={`mailto:${data.content.contact.email}`}>{data.content.contact.email}</a></span>
         <span>{t.location as string} {language === "en" ? "Miami, Florida" : "Майами, Флорида"}</span>
       </div>
       <small>© {year} ANA STYLING. {t.rights as string}</small>
@@ -611,10 +612,10 @@ function PublicationCover({ language, publication }: { language: Language; publi
 
 function StylistButton(props: { children: ReactNode; href?: string; asButton?: boolean }) {
   if (props.asButton) {
-    return <button className="stylist-cta" type="submit"><span>{props.children}</span><b aria-hidden="true">↗</b></button>;
+    return <button className="stylist-cta whatsapp-cta" type="submit"><span>{props.children}</span><b aria-hidden="true">→</b></button>;
   }
 
-  return <a className="stylist-cta" href={props.href}><span>{props.children}</span><b aria-hidden="true">↗</b></a>;
+  return <a className="stylist-cta" href={props.href}><span>{props.children}</span><b aria-hidden="true">→</b></a>;
 }
 
 function LanguageSwitcher({ language, onChange }: { language: Language; onChange: (language: Language) => void }) {

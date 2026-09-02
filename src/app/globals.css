@@ -5879,3 +5879,129 @@ h3,
     font-size: 2rem;
   }
 }
+
+/* Explicit save model and final mobile service/contact pass. */
+.admin-shell {
+  padding-bottom: 92px;
+}
+
+.admin-sticky-save {
+  bottom: 0;
+  left: 300px;
+  padding: 14px clamp(18px, 4vw, 58px);
+  position: fixed;
+  right: 0;
+  z-index: 120;
+  background: linear-gradient(180deg, rgba(243, 240, 233, 0), rgba(243, 240, 233, 0.96) 28%);
+}
+
+.admin-sticky-save .button {
+  min-height: 58px;
+  width: min(420px, 100%);
+}
+
+.admin-sticky-save .button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.admin-save-status.dirty span {
+  color: var(--wine);
+}
+
+.whatsapp-cta {
+  min-height: 58px !important;
+  padding: 0 14px 0 26px !important;
+}
+
+.whatsapp-cta b {
+  font-family: var(--font-body), Arial, sans-serif !important;
+  font-size: 1rem !important;
+  line-height: 1 !important;
+}
+
+section[id],
+.full-page-section {
+  scroll-margin-top: calc(84px + env(safe-area-inset-top));
+}
+
+@media (max-width: 768px) {
+  .admin-sticky-save {
+    left: 0;
+    padding: 12px 14px calc(88px + env(safe-area-inset-bottom));
+  }
+
+  .admin-sticky-save .button {
+    width: 100%;
+  }
+
+  .fashion-services,
+  .fashion-services.full-page-section {
+    padding-top: calc(88px + env(safe-area-inset-top)) !important;
+  }
+
+  .services-runway {
+    display: grid !important;
+    gap: 34px !important;
+  }
+
+  .runway-service,
+  .runway-service:nth-child(even) {
+    display: grid !important;
+    gap: 16px !important;
+    grid-template-columns: 1fr !important;
+    padding: 26px 0 34px !important;
+  }
+
+  .runway-service > span {
+    font-size: 3.3rem !important;
+    line-height: 0.9 !important;
+  }
+
+  .runway-service figure,
+  .runway-service:nth-child(even) figure,
+  .runway-service > div,
+  .runway-service:nth-child(even) > div {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    width: 100% !important;
+  }
+
+  .runway-service img {
+    aspect-ratio: 4 / 5 !important;
+    height: auto !important;
+    object-fit: cover !important;
+    width: 100% !important;
+  }
+
+  .runway-service h3,
+  .runway-service h4 {
+    font-size: clamp(2.45rem, 14vw, 4.4rem) !important;
+    line-height: 0.92 !important;
+    max-width: 100% !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+
+  .runway-service p,
+  .runway-service strong,
+  .runway-service em,
+  .pricing-note {
+    font-size: 1rem !important;
+    line-height: 1.62 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow-wrap: break-word !important;
+    word-break: normal !important;
+  }
+
+  .runway-service button {
+    min-height: 44px !important;
+  }
+
+  .whatsapp-cta {
+    justify-content: space-between !important;
+    min-height: 58px !important;
+    width: 100% !important;
+  }
+}

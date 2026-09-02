@@ -5,57 +5,36 @@ import { type StudioData } from "@/data/site";
 import { loadStudioData, saveStudioData } from "@/lib/studio-store";
 import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
 
-export type SaveStatus = "idle" | "saving" | "saved" | "error";
+export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
+
+function sameStudioData(a: StudioData, b: StudioData) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
 
 export function useStudioData() {
   const [data, setData] = useState<StudioData>(() => loadStudioData());
+  const [savedData, setSavedData] = useState<StudioData>(() => loadStudioData());
   const [saveError, setSaveError] = useState("");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isSyncing, setIsSyncing] = useState(false);
-  const lastLocalEditRef = useRef(0);
+  const hasLocalDraftRef = useRef(false);
   const isSavingRef = useRef(false);
-  const pendingSaveRef = useRef<StudioData | null>(null);
-  const failedSaveRef = useRef<StudioData | null>(null);
+  const lastFailedDraftRef = useRef<StudioData | null>(null);
 
-  const flushSaveQueue = useCallback(async () => {
-    if (isSavingRef.current) return;
-    isSavingRef.current = true;
-
-    while (pendingSaveRef.current) {
-      const snapshot = pendingSaveRef.current;
-      pendingSaveRef.current = null;
-      setSaveStatus("saving");
-      setSaveError("");
-
-      const result = await saveStudioDataToSupabase(snapshot);
-
-      if (!result.ok) {
-        failedSaveRef.current = snapshot;
-        setSaveStatus("error");
-        setSaveError(result.message);
-        break;
-      }
-
-      failedSaveRef.current = null;
-      saveStudioData(result.data);
-      setData(result.data);
-      setSaveStatus("saved");
-    }
-
-    isSavingRef.current = false;
-  }, []);
+  const hasUnsavedChanges = !sameStudioData(data, savedData);
 
   useEffect(() => {
     let isMounted = true;
-    const remoteLoadStartedAt = Date.now();
 
     async function syncRemoteData() {
       setIsSyncing(true);
       const remote = await loadStudioDataFromSupabase();
 
-      if (remote && isMounted && lastLocalEditRef.current <= remoteLoadStartedAt) {
+      if (remote && isMounted && !hasLocalDraftRef.current) {
         saveStudioData(remote.data);
+        setSavedData(remote.data);
         setData(remote.data);
+        setSaveStatus("idle");
       }
 
       if (isMounted) setIsSyncing(false);
@@ -65,12 +44,20 @@ export function useStudioData() {
 
     function handleStorage(event: StorageEvent) {
       if (event.key) {
-        setData(loadStudioData());
+        const localData = loadStudioData();
+        if (!hasLocalDraftRef.current) {
+          setData(localData);
+          setSavedData(localData);
+        }
       }
     }
 
     function handleStudioChange(event: Event) {
-      setData((event as CustomEvent<StudioData>).detail);
+      if (!hasLocalDraftRef.current) {
+        const next = (event as CustomEvent<StudioData>).detail;
+        setData(next);
+        setSavedData(next);
+      }
     }
 
     window.addEventListener("storage", handleStorage);
@@ -86,19 +73,64 @@ export function useStudioData() {
   function updateData(updater: (current: StudioData) => StudioData) {
     setData((current) => {
       const next = updater(current);
-      lastLocalEditRef.current = Date.now();
-      pendingSaveRef.current = next;
-      saveStudioData(next);
-      void flushSaveQueue();
+      hasLocalDraftRef.current = true;
+      setSaveError("");
+      setSaveStatus("dirty");
       return next;
     });
   }
 
+  const saveChanges = useCallback(async (override?: StudioData) => {
+    if (isSavingRef.current) return false;
+    const draft = override ?? data;
+
+    if (sameStudioData(draft, savedData)) {
+      setSaveStatus("saved");
+      return true;
+    }
+
+    isSavingRef.current = true;
+    setSaveStatus("saving");
+    setSaveError("");
+
+    const result = await saveStudioDataToSupabase(draft);
+
+    if (!result.ok) {
+      lastFailedDraftRef.current = draft;
+      setSaveStatus("error");
+      setSaveError(result.message);
+      isSavingRef.current = false;
+      return false;
+    }
+
+    saveStudioData(result.data);
+    setSavedData(result.data);
+    setData(result.data);
+    hasLocalDraftRef.current = false;
+    lastFailedDraftRef.current = null;
+    setSaveStatus("saved");
+    isSavingRef.current = false;
+    return true;
+  }, [data, savedData]);
+
   function retrySave() {
-    if (!failedSaveRef.current) return;
-    pendingSaveRef.current = failedSaveRef.current;
-    void flushSaveQueue();
+    return saveChanges(lastFailedDraftRef.current ?? data);
   }
 
-  return { data, isSyncing, retrySave, saveError, saveStatus, updateData };
+  function discardDraft() {
+    hasLocalDraftRef.current = false;
+    lastFailedDraftRef.current = null;
+    setSaveError("");
+    setSaveStatus("idle");
+    setData(savedData);
+  }
+
+  const visibleSaveStatus: SaveStatus =
+    hasUnsavedChanges && saveStatus !== "saving" && saveStatus !== "error"
+      ? "dirty"
+      : !hasUnsavedChanges && saveStatus === "dirty"
+        ? "idle"
+        : saveStatus;
+
+  return { data, discardDraft, hasUnsavedChanges, isSyncing, retrySave, saveChanges, saveError, saveStatus: visibleSaveStatus, updateData };
 }

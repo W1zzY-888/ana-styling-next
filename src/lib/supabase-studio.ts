@@ -118,10 +118,17 @@ export async function saveStudioDataToSupabase(data: StudioData): Promise<Studio
     return { ok: false, message: "Couldn’t save — Retry" };
   }
 
+  const remote = await loadStudioDataFromSupabase();
+
+  if (!remote || JSON.stringify(remote.data) !== JSON.stringify(data)) {
+    console.error("Ana Styling remote content did not match the saved draft.", remote);
+    return { ok: false, message: "Couldn’t save — Retry" };
+  }
+
   return {
     ok: true,
-    data: row.content as StudioData,
-    updatedAt: String(row.updated_at ?? updatedAt),
+    data: remote.data,
+    updatedAt: remote.updatedAt || String(row.updated_at ?? updatedAt),
   };
 }
 

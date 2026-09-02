@@ -61,6 +61,9 @@ export type SiteContent = {
   contact: {
     headline: LocalizedString;
     body: LocalizedString;
+    whatsappNumber: string;
+    instagramUrl: string;
+    email: string;
   };
 };
 
@@ -126,6 +129,9 @@ export const initialStudioData: StudioData = {
         "Share what you are dressing for. WhatsApp opens with your note prepared, so the conversation begins cleanly.",
         "Расскажите, для чего нужен образ. WhatsApp откроется с готовым сообщением, останется только нажать отправку.",
       ),
+      whatsappNumber: "+1 310 804 0450",
+      instagramUrl: "https://www.instagram.com/aleynikovaa",
+      email: "anastyling@gmail.com",
     },
   },
   services: [
