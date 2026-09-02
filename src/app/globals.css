@@ -6621,3 +6621,73 @@ section[id],
     left: clamp(48px, 5vw, 96px) !important;
   }
 }
+
+@media (max-width: 768px) {
+  .public-site .campaign-copy {
+    bottom: calc(92px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .public-site .campaign-copy .cta-row {
+    gap: 14px !important;
+  }
+
+  .public-site .campaign-copy .stylist-cta {
+    max-width: min(100%, 330px) !important;
+    width: 100% !important;
+  }
+
+  .public-site .campaign-copy .text-link {
+    color: #f8ead9 !important;
+    margin-top: 0 !important;
+    opacity: 0.96 !important;
+  }
+
+  .public-site .services-preview-section .preview-service,
+  .public-site .services-preview-section .featured-service {
+    background: linear-gradient(160deg, rgba(255, 248, 238, 0.96), rgba(239, 214, 200, 0.92)) !important;
+  }
+
+  .public-site .services-preview-section .preview-service h3,
+  .public-site .services-preview-section .featured-service h3,
+  .public-site .services-preview-section .preview-service strong,
+  .public-site .services-preview-section .featured-service strong {
+    color: #64111b !important;
+  }
+
+  .public-site .services-preview-section .preview-service p,
+  .public-site .services-preview-section .featured-service p {
+    color: #5f4c44 !important;
+    opacity: 1 !important;
+  }
+
+  .public-site .services-preview-section .preview-service > span,
+  .public-site .services-preview-section .featured-service > span {
+    color: #b91f32 !important;
+  }
+
+  .public-site .contact-form {
+    overflow: hidden !important;
+  }
+
+  .public-site .whatsapp-cta {
+    box-sizing: border-box !important;
+    margin-inline: auto !important;
+    max-width: calc(100% - 28px) !important;
+    min-height: 58px !important;
+    padding: 0 10px 0 22px !important;
+    width: calc(100% - 28px) !important;
+  }
+
+  .public-site .whatsapp-cta b {
+    font-size: 0.86rem !important;
+    letter-spacing: 0.16em !important;
+    white-space: nowrap !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .public-site .whatsapp-cta b {
+    font-size: 0.78rem !important;
+    letter-spacing: 0.12em !important;
+  }
+}
