@@ -30,6 +30,7 @@ import { getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, signIn
 
 type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Contact";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
+type LeavePrompt = { view: View } | null;
 
 const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const imageSizes: PortfolioImageSize[] = ["Small", "Medium", "Large"];
@@ -38,6 +39,7 @@ const placeholderImage = "https://images.unsplash.com/photo-1558769132-cb1aea458
 const adminLanguages: Language[] = ["en", "ru"];
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
+const previewHref = "https://w1zzy-888.github.io/ana-styling-next/";
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const ADMIN_SESSION_KEY = "ana-styling-admin-session";
 
@@ -138,7 +140,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
         </label>
         {error && <p className="admin-login-error" role="alert">{error}</p>}
         <button className="button primary" type="submit">Enter Studio</button>
-        <a href={pageHref("/")}>Back to website</a>
+        <a href={previewHref}>Back to website</a>
       </form>
     </main>
   );
@@ -155,6 +157,8 @@ export function AdminApp() {
   const [mode, setMode] = useState<"Edit" | "Preview">("Edit");
   const [contentLanguage, setContentLanguage] = useState<Language>("en");
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
+  const [leavePrompt, setLeavePrompt] = useState<LeavePrompt>(null);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [undoPhoto, setUndoPhoto] = useState<{ itemId: string; image: PortfolioImage } | null>(null);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -202,8 +206,23 @@ export function AdminApp() {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
   }
 
+  async function continueTo(view: View, shouldSave: boolean) {
+    if (shouldSave) {
+      const saved = await saveChanges();
+      if (!saved) return;
+    }
+    setLeavePrompt(null);
+    setIsMoreOpen(false);
+    setActive(view);
+  }
+
   function navigateTo(view: View) {
-    if (hasUnsavedChanges && !window.confirm("You have unsaved changes. Save before leaving?")) return;
+    if (active === view) return;
+    if (hasUnsavedChanges) {
+      setLeavePrompt({ view });
+      return;
+    }
+    setIsMoreOpen(false);
     setActive(view);
   }
 
@@ -605,7 +624,7 @@ export function AdminApp() {
           </button>
         ))}
         <button type="button" onClick={addItem}>Add new work</button>
-        <a href={pageHref("/")}>View website</a>
+        <a href={previewHref} target="_blank" rel="noreferrer">View website</a>
         <button type="button" onClick={async () => {
           await signOutAdmin();
           window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
@@ -617,13 +636,13 @@ export function AdminApp() {
         <div className={`admin-save-status ${saveStatus}`}>
           <span>{saveStatus === "dirty" ? "Unsaved changes" : saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
           {saveStatus === "error" && <button type="button" onClick={retrySave}>Retry</button>}
-          <a href={pageHref("/")} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
+          <a href={previewHref} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
         </div>
         {active === "Dashboard" && (
           <div className="admin-view">
             <div className="admin-hero">
               <div><p className="eyebrow">ANA STYLING</p><h2>What would you like to update?</h2></div>
-              <a className="button primary" href={pageHref("/")} target="_blank" rel="noreferrer">Preview website</a>
+              <a className="button primary" href={previewHref} target="_blank" rel="noreferrer">Preview website</a>
             </div>
             <div className="cms-section-grid">
               {(["Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((section) => (
@@ -811,12 +830,17 @@ export function AdminApp() {
                     <span>{service.price ? text(service.price, contentLanguage) : "No price"}</span>
                     <small>{service.published ? "Visible on website" : "Hidden"}</small>
                   </div>
-                  <div className="admin-card-actions">
-                    <button type="button" onClick={() => openServiceEditor(service.id)}>Edit</button>
-                    <button type="button" onClick={() => moveService(service.id, -1)}>Move up</button>
-                    <button type="button" onClick={() => moveService(service.id, 1)}>Move down</button>
-                    <button type="button" onClick={() => duplicateService(service)}>Duplicate</button>
-                    <button type="button" onClick={() => deleteService(service.id)}>Delete</button>
+                  <div className="service-card-controls">
+                    <button className="service-edit-button" type="button" onClick={() => openServiceEditor(service.id)}>Edit</button>
+                    <details className="card-more-menu">
+                      <summary aria-label={`More actions for ${text(service.title, contentLanguage)}`}>•••</summary>
+                      <div>
+                        <button type="button" onClick={() => moveService(service.id, -1)}>Move up</button>
+                        <button type="button" onClick={() => moveService(service.id, 1)}>Move down</button>
+                        <button type="button" onClick={() => duplicateService(service)}>Duplicate</button>
+                        <button className="danger" type="button" onClick={() => deleteService(service.id)}>Delete</button>
+                      </div>
+                    </details>
                   </div>
                 </article>
               ))}
@@ -826,7 +850,7 @@ export function AdminApp() {
 
         {active === "Service Editor" && editingService && (
           <div className="admin-view simple-editor-view">
-            <div className="admin-heading"><div><p className="eyebrow">Service</p><h2>{text(editingService.title, contentLanguage)}</h2></div><LanguageTabs language={contentLanguage} onChange={setContentLanguage} /></div>
+            <div className="admin-heading service-editor-heading"><button className="back-link-button" type="button" onClick={() => navigateTo("Services")}>← Services</button><div><p className="eyebrow">Service</p><h2>{text(editingService.title, contentLanguage)}</h2></div><LanguageTabs language={contentLanguage} onChange={setContentLanguage} /></div>
             <section className="editor-form editor-panel compact-panel">
               <div className="service-image-editor"><img src={assetSrc(editingService.image)} alt="" /><label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replaceServiceImage(editingService.id, event)} /></label></div>
               <label>Name<input value={text(editingService.title, contentLanguage)} onChange={(event) => updateLocalizedService(editingService.id, "title", contentLanguage, event.target.value)} /></label>
@@ -834,7 +858,6 @@ export function AdminApp() {
               <label>Price<input value={editingService.price ? text(editingService.price, contentLanguage) : ""} onChange={(event) => updateService(editingService.id, { price: { ...localized(editingService.price ?? ""), [contentLanguage]: event.target.value } })} /></label>
               <label>Category<select value={editingService.group} onChange={(event) => updateService(editingService.id, { group: event.target.value as ServiceGroup })}>{serviceGroups.map((group) => <option key={group}>{group}</option>)}</select></label>
               <label className="toggle"><input checked={editingService.published} type="checkbox" onChange={(event) => updateService(editingService.id, { published: event.target.checked })} /> Visible on website</label>
-              <div className="editor-actions"><button className="button" type="button" onClick={() => navigateTo("Services")}>Back</button></div>
             </section>
           </div>
         )}
@@ -888,9 +911,44 @@ export function AdminApp() {
         </div>
       )}
 
-      <div className="admin-sticky-save">
+      {leavePrompt && (
+        <div className="confirm-modal" role="dialog" aria-modal="true" aria-label="Unsaved changes">
+          <div className="confirm-panel leave-panel">
+            <h3>You have unsaved changes.</h3>
+            <p>Save before leaving?</p>
+            <div>
+              <button type="button" onClick={() => setLeavePrompt(null)}>Cancel</button>
+              <button type="button" onClick={() => continueTo(leavePrompt.view, false)}>Discard</button>
+              <button className="primary" type="button" onClick={() => continueTo(leavePrompt.view, true)}>Save & continue</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="admin-mobile-nav" aria-label="Admin sections">
+        <button className={active === "Home" ? "active" : ""} type="button" onClick={() => navigateTo("Home")}>Home</button>
+        <button className={active === "Services" || active === "Service Editor" ? "active" : ""} type="button" onClick={() => navigateTo("Services")}>Services</button>
+        <button className={active === "Portfolio" || active === "Editor" ? "active" : ""} type="button" onClick={() => navigateTo("Portfolio")}>Portfolio</button>
+        <button className={isMoreOpen ? "active" : ""} type="button" onClick={() => setIsMoreOpen((value) => !value)}>More</button>
+      </nav>
+
+      {isMoreOpen && (
+        <div className="admin-more-sheet">
+          {(["Dashboard", "About", "Publications", "Contact"] as View[]).map((item) => (
+            <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => navigateTo(item)}>{item}</button>
+          ))}
+          <a href={previewHref} target="_blank" rel="noreferrer">Preview website</a>
+          <button type="button" onClick={async () => {
+            await signOutAdmin();
+            window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
+            setIsUnlocked(false);
+          }}>Lock studio</button>
+        </div>
+      )}
+
+      <div className={`admin-sticky-save ${hasUnsavedChanges || saveStatus === "saving" || saveStatus === "error" ? "is-visible" : "is-idle"}`}>
         <button className="button primary" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
-          {saveStatus === "saving" ? "Saving…" : saveStatus === "error" ? "Retry Save changes" : "Save changes"}
+          {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save changes" : "Save changes"}
         </button>
       </div>
     </main>
