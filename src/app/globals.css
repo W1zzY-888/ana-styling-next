@@ -6335,6 +6335,20 @@ section[id],
   scroll-margin-top: calc(84px + env(safe-area-inset-top));
 }
 
+.public-loading {
+  align-items: center;
+  background: #f7f1e9;
+  color: #64111b;
+  display: flex;
+  font-family: var(--font-bebas), var(--font-body), Arial, sans-serif;
+  font-size: clamp(3rem, 13vw, 8rem);
+  justify-content: center;
+  letter-spacing: 0.06em;
+  min-height: calc(100svh - 76px);
+  padding: 96px 24px 48px;
+  text-transform: uppercase;
+}
+
 @media (max-width: 768px) {
   .admin-sticky-save {
     left: 0;

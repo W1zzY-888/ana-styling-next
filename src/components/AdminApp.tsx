@@ -35,7 +35,7 @@ type LeavePrompt = { view: View } | null;
 const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const imageSizes: PortfolioImageSize[] = ["Small", "Medium", "Large"];
 const serviceGroups: ServiceGroup[] = ["Personal Styling", "Commercial Styling"];
-const placeholderImage = "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&w=600&q=80";
+const placeholderImage = "/ana-photos/about-ana.jpg";
 const adminLanguages: Language[] = ["en", "ru"];
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;

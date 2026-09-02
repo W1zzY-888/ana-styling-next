@@ -3,6 +3,7 @@
 import { type ReactNode, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   categoryLabels,
+  initialStudioData,
   type Language,
   type PortfolioCategory,
   type PortfolioItem,
@@ -136,21 +137,22 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   const [form, setForm] = useState({ firstName: "", lastName: "", service: "", message: "" });
   const [formNote, setFormNote] = useState("");
   const [year] = useState(() => new Date().getFullYear());
-  const { data } = usePublicStudioData();
+  const { data, isLoading } = usePublicStudioData();
   const t = dictionary[language];
   const nav = t.nav as string[];
+  const studioData = data ?? initialStudioData;
 
-  const visibleServices = useMemo(() => data.services.filter((service) => service.published).sort((a, b) => a.order - b.order), [data.services]);
+  const visibleServices = useMemo(() => studioData.services.filter((service) => service.published).sort((a, b) => a.order - b.order), [studioData.services]);
   const featuredService = visibleServices.find((service) => service.group === "Personal Styling") ?? visibleServices[0];
   const visiblePortfolio = useMemo(
     () =>
-      data.portfolioItems
+      studioData.portfolioItems
         .filter((item) => item.published)
         .filter((item) => category === "All" || item.category === category)
         .sort((a, b) => a.order - b.order),
-    [category, data.portfolioItems],
+    [category, studioData.portfolioItems],
   );
-  const visiblePublications = useMemo(() => data.publications.filter((publication) => publication.published).sort((a, b) => a.order - b.order), [data.publications]);
+  const visiblePublications = useMemo(() => studioData.publications.filter((publication) => publication.published).sort((a, b) => a.order - b.order), [studioData.publications]);
   const galleryImages = useMemo(
     () => visiblePortfolio.flatMap((item) => item.images.filter((image) => !image.hidden).sort((a, b) => a.order - b.order).map((image) => ({ image, item }))),
     [visiblePortfolio],
@@ -235,7 +237,18 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
       return;
     }
     setFormNote("");
-    window.open(`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
+    window.open(`https://wa.me/${phoneDigits(studioData.content.contact.whatsappNumber)}?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
+  }
+
+  if (!data) {
+    return (
+      <main className="public-site">
+        <SiteHeader changeLanguage={changeLanguage} language={language} menuOpen={menuOpen} nav={nav} navHref={navHref} setMenuOpen={setMenuOpen} />
+        <section className="public-loading" aria-busy={isLoading}>
+          <p>ANA STYLING</p>
+        </section>
+      </main>
+    );
   }
 
   return (
@@ -243,8 +256,8 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
       <SiteHeader nav={nav} navHref={navHref} language={language} changeLanguage={changeLanguage} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {page === "home" && (
         <>
-          <Hero language={language} t={t} data={data} />
-          <About language={language} t={t} data={data} />
+          <Hero language={language} t={t} data={studioData} />
+          <About language={language} t={t} data={studioData} />
           {featuredService && <ServicesPreview labels={t} language={language} service={featuredService} onContact={selectService} />}
           <PortfolioSection
             category={category}
@@ -304,8 +317,8 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           </div>
         </section>
       )}
-      {page !== "publications" && page !== "portfolio" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={data} />}
-      <Footer data={data} language={language} nav={nav} navHref={navHref} t={t} year={year} />
+      {page !== "publications" && page !== "portfolio" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={studioData} />}
+      <Footer data={studioData} language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
         activeLightbox={activeLightbox}
         galleryImagesLength={galleryImages.length}
