@@ -6438,9 +6438,20 @@ section[id],
 
 @media (max-width: 760px) {
   .admin-sticky-save {
-    bottom: calc(72px + env(safe-area-inset-bottom)) !important;
-    padding: 12px 16px !important;
-    z-index: 220 !important;
+    background: transparent !important;
+    bottom: auto !important;
+    left: auto !important;
+    padding: 14px 16px calc(112px + env(safe-area-inset-bottom)) !important;
+    position: static !important;
+    right: auto !important;
+    transform: none !important;
+    z-index: auto !important;
+  }
+
+  .admin-sticky-save.is-idle,
+  .admin-sticky-save.is-visible {
+    pointer-events: auto !important;
+    transform: none !important;
   }
 
   .admin-mobile-nav {
