@@ -6530,10 +6530,10 @@ section[id],
 /* Mobile-only hero/contact corrections. */
 @media (max-width: 768px) {
   .public-site .hero-cover-word-back {
-    font-size: clamp(3.25rem, 15vw, 5.25rem) !important;
-    line-height: 0.88 !important;
-    margin: 78px 20px 0 !important;
-    max-width: 7.1ch !important;
+    font-size: clamp(3rem, 13.2vw, 4.55rem) !important;
+    line-height: 1.02 !important;
+    margin: 36px 20px 0 !important;
+    max-width: 7.8ch !important;
     transform: none !important;
   }
 
@@ -6544,7 +6544,7 @@ section[id],
 
   .public-site .campaign-copy {
     background: transparent !important;
-    margin: auto 20px 34px !important;
+    margin: 12px 20px 34px !important;
     max-width: calc(100% - 40px) !important;
   }
 
