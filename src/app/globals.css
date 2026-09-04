@@ -6441,3 +6441,52 @@ section[id],
     z-index: 150 !important;
   }
 }
+
+/* Safari-safe hero restore: keep the opening photo visible behind the title. */
+.public-site .campaign-hero {
+  background: #17090b !important;
+  display: grid !important;
+  min-height: 100svh !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  position: relative !important;
+}
+
+.public-site .campaign-image,
+.public-site .campaign-hero .campaign-image.reveal {
+  animation: none !important;
+  display: block !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  height: 100% !important;
+  inset: 0 !important;
+  margin: 0 !important;
+  min-height: 100svh !important;
+  opacity: 1 !important;
+  position: absolute !important;
+  transform: none !important;
+  visibility: visible !important;
+  width: 100% !important;
+  z-index: 1 !important;
+}
+
+.public-site .campaign-image img {
+  display: block !important;
+  height: 100% !important;
+  min-height: 100svh !important;
+  object-fit: cover !important;
+  object-position: 68% center !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  width: 100% !important;
+}
+
+.public-site .campaign-hero::before {
+  z-index: 2 !important;
+}
+
+.public-site .hero-cover-word-back,
+.public-site .campaign-copy {
+  position: relative !important;
+  z-index: 4 !important;
+}
