@@ -6529,11 +6529,20 @@ section[id],
 
 /* Mobile-only hero/contact corrections. */
 @media (max-width: 768px) {
+  .public-site .campaign-hero {
+    align-content: start !important;
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 100svh !important;
+    padding: 0 !important;
+  }
+
   .public-site .hero-cover-word-back {
-    font-size: clamp(3rem, 13.2vw, 4.55rem) !important;
-    line-height: 1.02 !important;
-    margin: 36px 20px 0 !important;
-    max-width: 7.8ch !important;
+    flex: 0 0 auto !important;
+    font-size: clamp(3rem, 12.4vw, 4.25rem) !important;
+    line-height: 1.08 !important;
+    margin: 52px 20px 0 !important;
+    max-width: 7.9ch !important;
     transform: none !important;
   }
 
@@ -6544,8 +6553,22 @@ section[id],
 
   .public-site .campaign-copy {
     background: transparent !important;
-    margin: 12px 20px 34px !important;
+    flex: 0 0 auto !important;
+    margin: 14px 20px 0 !important;
     max-width: calc(100% - 40px) !important;
+  }
+
+  .public-site .campaign-copy .eyebrow {
+    margin-top: 0 !important;
+  }
+
+  .public-site .campaign-copy p:not(.eyebrow) {
+    margin-top: 16px !important;
+  }
+
+  .public-site .campaign-copy .cta-row {
+    gap: 18px !important;
+    margin-top: 28px !important;
   }
 
   .public-site .contact-form {
