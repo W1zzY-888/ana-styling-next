@@ -6557,3 +6557,33 @@ section[id],
     padding-bottom: 52px !important;
   }
 }
+
+/* Hero portfolio CTA must stay readable over photography. */
+.public-site .campaign-copy .text-link {
+  background: rgba(24, 5, 7, 0.48) !important;
+  color: #fff4e6 !important;
+  font-size: clamp(1rem, 1.35vw, 1.18rem) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.24em !important;
+  min-height: 66px !important;
+  padding: 14px 18px 18px !important;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.74) !important;
+  width: min(100%, 430px) !important;
+}
+
+.public-site .campaign-copy .text-link::after {
+  background: #fff4e6 !important;
+  bottom: 8px !important;
+  height: 2px !important;
+  left: 18px !important;
+  right: 18px !important;
+  width: auto !important;
+}
+
+@media (max-width: 768px) {
+  .public-site .campaign-copy .text-link {
+    font-size: 0.9rem !important;
+    letter-spacing: 0.16em !important;
+    width: min(100%, 340px) !important;
+  }
+}
