@@ -6706,3 +6706,517 @@ section[id],
     visibility: visible !important;
   }
 }
+
+/* ANA stable burgundy texture background: user-selected image, no scroll-driven repainting. */
+.public-site {
+  background: url("/ana-photos/backgrounds/burgundy-croc-texture.jpg");
+  background-position: center;
+  background-repeat: repeat;
+  background-size: 760px auto;
+  isolation: isolate;
+}
+
+.public-site .editorial-about,
+.public-site .services-preview-section,
+.public-site .fashion-portfolio,
+.public-site .publications-section,
+.public-site .fashion-contact {
+  background: url("/ana-photos/backgrounds/burgundy-croc-texture.jpg");
+  background-position: center;
+  background-repeat: repeat;
+  background-size: 760px auto;
+}
+
+.public-site .fashion-services,
+.public-site .fashion-services.full-page-section,
+.public-site .lux-footer {
+  background: url("/ana-photos/backgrounds/burgundy-croc-texture.jpg");
+  background-position: center;
+  background-repeat: repeat;
+  background-size: 760px auto;
+}
+
+.public-site .campaign-hero {
+  background: url("/ana-photos/backgrounds/burgundy-croc-texture.jpg");
+  background-position: center;
+  background-repeat: repeat;
+  background-size: 760px auto;
+}
+
+.public-site .campaign-hero::after,
+.public-site .editorial-about::before,
+.public-site .services-preview-section::before,
+.public-site .fashion-portfolio::before,
+.public-site .publications-section::before,
+.public-site .fashion-contact::before,
+.public-site .fashion-services::before,
+.public-site .lux-footer::before {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Readability pass for the burgundy crocodile texture. */
+.public-site .eyebrow,
+.public-site .section-link,
+.public-site .text-link,
+.public-site .runway-service > span,
+.public-site .preview-service > span,
+.public-site .featured-service > span,
+.public-site .publication-card span {
+  color: #ff6f7a !important;
+  text-shadow: 0 2px 12px rgba(12, 1, 2, 0.72);
+}
+
+.public-site h1,
+.public-site h2,
+.public-site h3,
+.public-site h4,
+.public-site strong,
+.public-site .portfolio-title-row h2,
+.public-site .services-intro h2,
+.public-site .contact-copy h2,
+.public-site .about-intro h2 {
+  color: #fff3e4 !important;
+  text-shadow: 0 3px 18px rgba(12, 1, 2, 0.78);
+}
+
+.public-site p,
+.public-site em,
+.public-site .about-body p,
+.public-site .contact-copy p,
+.public-site .runway-service p,
+.public-site .preview-service p,
+.public-site .featured-service p,
+.public-site .publication-card p,
+.public-site .lux-footer,
+.public-site .lux-footer a,
+.public-site .developer-credit,
+.public-site .footer-contact {
+  color: rgba(255, 243, 228, 0.84) !important;
+  text-shadow: 0 2px 12px rgba(12, 1, 2, 0.62);
+}
+
+.public-site .about-intro,
+.public-site .contact-form,
+.public-site .publication-card,
+.public-site .featured-service,
+.public-site .preview-service,
+.public-site .category-filter {
+  background: rgba(255, 241, 225, 0.86) !important;
+  border-color: rgba(255, 243, 228, 0.34) !important;
+  box-shadow: 0 24px 70px rgba(10, 1, 2, 0.28) !important;
+}
+
+.public-site .about-intro,
+.public-site .contact-form label,
+.public-site .contact-form input,
+.public-site .contact-form select,
+.public-site .contact-form textarea,
+.public-site .publication-card h3,
+.public-site .publication-card p,
+.public-site .featured-service h3,
+.public-site .featured-service p,
+.public-site .preview-service h3,
+.public-site .preview-service p {
+  color: #321512 !important;
+  text-shadow: none !important;
+}
+
+.public-site .contact-form input,
+.public-site .contact-form select,
+.public-site .contact-form textarea {
+  background: rgba(255, 250, 242, 0.92) !important;
+  border-color: rgba(89, 13, 22, 0.24) !important;
+}
+
+.public-site .social-button {
+  color: #fff3e4 !important;
+  border-color: rgba(255, 243, 228, 0.34) !important;
+  text-shadow: 0 2px 12px rgba(12, 1, 2, 0.62);
+}
+
+/* Final contrast polish over the dark burgundy texture. */
+.public-site .lux-header {
+  background: rgba(255, 239, 224, 0.92) !important;
+  border-bottom-color: rgba(255, 206, 188, 0.58) !important;
+  box-shadow: 0 10px 38px rgba(18, 3, 5, 0.18) !important;
+}
+
+.public-site .lux-brand,
+.public-site .lux-nav a,
+.public-site .language-switcher button,
+.public-site .menu-button span {
+  color: #2b1410 !important;
+  text-shadow: none !important;
+}
+
+.public-site .language-switcher {
+  background: rgba(255, 246, 236, 0.62) !important;
+  border-color: rgba(177, 30, 44, 0.42) !important;
+}
+
+.public-site .language-switcher .active {
+  background: #b51d2d !important;
+  color: #fff4e6 !important;
+}
+
+.public-site .contact-copy .eyebrow {
+  color: #ffb8a8 !important;
+}
+
+.public-site .contact-copy h2 {
+  color: #fff1df !important;
+  text-shadow: 0 5px 24px rgba(10, 1, 2, 0.9) !important;
+}
+
+.public-site .contact-copy p,
+.public-site .contact-copy strong,
+.public-site .contact-copy a,
+.public-site .fashion-contact .social-button,
+.public-site .fashion-contact .contact-meta,
+.public-site .fashion-contact .contact-meta span {
+  color: #fff2df !important;
+  opacity: 1 !important;
+  text-shadow: 0 3px 16px rgba(10, 1, 2, 0.82) !important;
+}
+
+.public-site .fashion-contact .social-button {
+  background: rgba(34, 4, 7, 0.28) !important;
+  border-color: rgba(255, 235, 215, 0.56) !important;
+}
+
+.public-site .fashion-contact .social-button svg {
+  color: #fff2df !important;
+}
+
+.public-site .contact-form {
+  background: rgba(255, 240, 225, 0.9) !important;
+  border-color: rgba(255, 229, 210, 0.6) !important;
+  box-shadow: 0 28px 86px rgba(10, 1, 2, 0.36) !important;
+}
+
+.public-site .contact-form label {
+  color: #4b1518 !important;
+  text-shadow: none !important;
+}
+
+.public-site .contact-form input,
+.public-site .contact-form select,
+.public-site .contact-form textarea {
+  background: rgba(255, 251, 244, 0.96) !important;
+  border-color: rgba(120, 19, 29, 0.2) !important;
+  color: #2b1410 !important;
+}
+
+.public-site .contact-form select {
+  color: #2b1410 !important;
+}
+
+.public-site .whatsapp-cta {
+  background: #b51d2d !important;
+  color: #fff4e6 !important;
+  box-shadow: 0 16px 42px rgba(87, 6, 14, 0.36) !important;
+}
+
+.public-site .whatsapp-cta span,
+.public-site .whatsapp-cta b {
+  color: #fff4e6 !important;
+  text-shadow: none !important;
+}
+
+/* Site-wide text visibility audit for the pure burgundy texture background. */
+.public-site .contact-socials > span,
+.public-site .contact-socials .social-button,
+.public-site .contact-socials .social-button span,
+.public-site .contact-socials .social-button svg,
+.public-site .lux-footer nav a,
+.public-site .lux-footer .social-button,
+.public-site .lux-footer .social-button span,
+.public-site .lux-footer .social-button svg,
+.public-site .footer-contact span,
+.public-site .footer-contact a,
+.public-site .developer-credit {
+  color: #fff2df !important;
+  opacity: 1 !important;
+  text-shadow: 0 3px 16px rgba(10, 1, 2, 0.88) !important;
+}
+
+.public-site .contact-socials .social-button,
+.public-site .lux-footer .social-button {
+  background: rgba(28, 3, 5, 0.42) !important;
+  border-color: rgba(255, 235, 214, 0.62) !important;
+}
+
+.public-site .contact-socials .social-button:hover,
+.public-site .lux-footer .social-button:hover {
+  background: rgba(255, 242, 223, 0.14) !important;
+  border-color: rgba(255, 242, 223, 0.86) !important;
+}
+
+.public-site .fashion-contact > .contact-copy,
+.public-site .service-group,
+.public-site .portfolio-title-row,
+.public-site .publications-section > .portfolio-title-row {
+  color: #fff2df !important;
+}
+
+.public-site .fashion-contact > .contact-copy *,
+.public-site .service-group h3,
+.public-site .service-group h4,
+.public-site .service-group p,
+.public-site .service-group strong,
+.public-site .service-group em,
+.public-site .service-group button,
+.public-site .portfolio-title-row *,
+.public-site .filters button,
+.public-site .pricing-note {
+  color: #fff2df !important;
+  opacity: 1 !important;
+  text-shadow: 0 3px 16px rgba(10, 1, 2, 0.82) !important;
+}
+
+.public-site .fashion-contact > .contact-copy .eyebrow,
+.public-site .service-group > h3,
+.public-site .services-intro .eyebrow,
+.public-site .portfolio-title-row .eyebrow,
+.public-site .filters button.active {
+  color: #ffb8a8 !important;
+}
+
+.public-site .publication-cover h3 {
+  color: #fff2df !important;
+  text-shadow: 0 3px 16px rgba(10, 1, 2, 0.88) !important;
+}
+
+.public-site .about-body,
+.public-site .contact-form,
+.public-site .featured-service,
+.public-site .preview-service,
+.public-site .portfolio-open,
+.public-site .category-filter {
+  background: rgba(255, 241, 225, 0.92) !important;
+  border-color: rgba(255, 229, 210, 0.68) !important;
+}
+
+.public-site .about-body *,
+.public-site .contact-form *,
+.public-site .featured-service *,
+.public-site .preview-service *,
+.public-site .portfolio-open,
+.public-site .category-filter *,
+.public-site .filters button {
+  text-shadow: none !important;
+}
+
+.public-site .about-body,
+.public-site .about-body p,
+.public-site .about-intro,
+.public-site .contact-form,
+.public-site .contact-form label,
+.public-site .contact-form input,
+.public-site .contact-form select,
+.public-site .contact-form textarea,
+.public-site .featured-service h3,
+.public-site .featured-service p,
+.public-site .featured-service strong,
+.public-site .preview-service h3,
+.public-site .preview-service p,
+.public-site .preview-service strong,
+.public-site .portfolio-open,
+.public-site .category-filter button {
+  color: #2b1410 !important;
+  opacity: 1 !important;
+}
+
+.public-site .featured-service > span,
+.public-site .preview-service > span,
+.public-site .category-filter button.active {
+  color: #b51d2d !important;
+}
+
+/* Hard override: remove old dark overlays and fix catalog text contrast. */
+.public-site .campaign-hero::before,
+.public-site .campaign-hero::after,
+.public-site .about-photo-stack::after,
+.public-site .campaign-image::after {
+  background: none !important;
+  content: none !important;
+  display: none !important;
+  opacity: 0 !important;
+}
+
+.public-site .hero-cover-word-back,
+.public-site .hero-cover-word-front {
+  color: rgba(255, 242, 226, 0.22) !important;
+  text-shadow: 0 4px 22px rgba(8, 1, 2, 0.7) !important;
+}
+
+.public-site .services-intro .eyebrow,
+.public-site .portfolio-title-row .eyebrow,
+.public-site .publications-section .eyebrow,
+.public-site .service-group > h3,
+.public-site .filters button {
+  color: #ffd1c2 !important;
+  opacity: 1 !important;
+  text-shadow: 0 3px 14px rgba(8, 1, 2, 0.9) !important;
+}
+
+.public-site .services-intro h2,
+.public-site .portfolio-title-row h2,
+.public-site .publications-section h2,
+.public-site .fashion-portfolio h2,
+.public-site .fashion-services h2 {
+  color: #fff4e6 !important;
+  opacity: 1 !important;
+  text-shadow: 0 5px 24px rgba(8, 1, 2, 0.9) !important;
+}
+
+.public-site .runway-service,
+.public-site .publication-cover,
+.public-site .safe-editorial-grid button,
+.public-site .portfolio-tile {
+  border-color: rgba(255, 230, 210, 0.5) !important;
+}
+
+.public-site .runway-service h4,
+.public-site .runway-service p,
+.public-site .runway-service strong,
+.public-site .runway-service em,
+.public-site .runway-service button,
+.public-site .pricing-note,
+.public-site .publication-cover h3,
+.public-site .portfolio-open {
+  color: #fff4e6 !important;
+  opacity: 1 !important;
+  text-shadow: 0 3px 16px rgba(8, 1, 2, 0.88) !important;
+}
+
+.public-site .runway-service > span {
+  color: #ffb8a8 !important;
+  opacity: 1 !important;
+}
+
+/* Contact service controls and final visual consistency pass. */
+.contact-service-picker {
+  border: 1px solid rgba(165, 31, 47, 0.18);
+  border-radius: 18px;
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.contact-service-picker > div {
+  display: grid;
+  gap: 4px;
+}
+
+.contact-service-picker strong {
+  color: #2b1410;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.contact-service-picker span {
+  color: #756f68;
+  font-size: 0.86rem;
+}
+
+.public-site .section-link,
+.public-site .text-link,
+.public-site .runway-service button,
+.public-site .portfolio-open {
+  align-items: center !important;
+  color: #b51d2d !important;
+  display: inline-flex !important;
+  font-size: clamp(0.82rem, 1.2vw, 1rem) !important;
+  gap: 12px !important;
+  justify-content: space-between !important;
+  letter-spacing: 0.28em !important;
+  min-height: 54px !important;
+  padding: 0 0 12px !important;
+  position: relative !important;
+  text-shadow: none !important;
+  text-transform: uppercase !important;
+}
+
+.public-site .section-link::after,
+.public-site .text-link::after,
+.public-site .runway-service button::after,
+.public-site .portfolio-open::after {
+  background: #b51d2d !important;
+  bottom: 0 !important;
+  content: "" !important;
+  display: block !important;
+  height: 1px !important;
+  left: 0 !important;
+  opacity: 1 !important;
+  position: absolute !important;
+  right: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+}
+
+.public-site .editorial-about,
+.public-site .services-preview-section,
+.public-site .fashion-portfolio,
+.public-site .publications-section,
+.public-site .fashion-contact {
+  padding-block: clamp(78px, 9vw, 132px) !important;
+}
+
+.public-site .editorial-about {
+  background:
+    linear-gradient(180deg, rgba(23, 9, 11, 0.98) 0%, rgba(77, 18, 24, 0.72) 18%, rgba(189, 128, 96, 0.42) 36%, rgba(246, 236, 222, 0.94) 58%, rgba(246, 236, 222, 0.98) 100%),
+    url("/ana-photos/backgrounds/burgundy-croc-texture.jpg") !important;
+  background-position: center top !important;
+  background-repeat: repeat !important;
+  background-size: 760px auto !important;
+  margin-top: -1px !important;
+  padding-top: clamp(112px, 12vw, 190px) !important;
+}
+
+.public-site .editorial-about::before {
+  background: linear-gradient(180deg, rgba(23, 9, 11, 0.92), rgba(246, 236, 222, 0)) !important;
+  content: "" !important;
+  display: block !important;
+  height: clamp(80px, 9vw, 150px) !important;
+  left: 0 !important;
+  opacity: 1 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  right: 0 !important;
+  top: 0 !important;
+}
+
+.public-site .contact-form {
+  display: grid !important;
+  gap: clamp(16px, 2vw, 22px) !important;
+}
+
+.public-site .contact-form label {
+  display: grid !important;
+  gap: 10px !important;
+  letter-spacing: 0.16em !important;
+}
+
+.public-site .contact-form input,
+.public-site .contact-form select,
+.public-site .contact-form textarea {
+  min-height: 56px !important;
+  padding: 16px 18px !important;
+}
+
+@media (max-width: 768px) {
+  .public-site .section-link,
+  .public-site .text-link,
+  .public-site .runway-service button,
+  .public-site .portfolio-open {
+    letter-spacing: 0.22em !important;
+    width: min(100%, 370px) !important;
+  }
+
+  .public-site .editorial-about {
+    padding-top: 112px !important;
+  }
+}

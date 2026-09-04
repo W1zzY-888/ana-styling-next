@@ -371,6 +371,24 @@ export function AdminApp() {
     }));
   }
 
+  function toggleContactService(id: string, checked: boolean) {
+    updateData((current) => {
+      const currentIds = current.content.contact.serviceIds ?? [];
+      const serviceIds = checked ? [...new Set([...currentIds, id])] : currentIds.filter((serviceId) => serviceId !== id);
+
+      return {
+        ...current,
+        content: {
+          ...current.content,
+          contact: {
+            ...current.content.contact,
+            serviceIds,
+          },
+        },
+      };
+    });
+  }
+
   async function replaceHeroImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -812,6 +830,18 @@ export function AdminApp() {
                   <label>Email<input value={data.content.contact.email} onChange={(event) => updateContactSetting("email", event.target.value)} /></label>
                   <label>Main headline<input value={text(data.content.contact.headline, contentLanguage)} onChange={(event) => updateContentField("contact", "headline", contentLanguage, event.target.value)} /></label>
                   <label>Contact text<textarea rows={5} value={text(data.content.contact.body, contentLanguage)} onChange={(event) => updateContentField("contact", "body", contentLanguage, event.target.value)} /></label>
+                  <div className="contact-service-picker">
+                    <div>
+                      <strong>Services in contact form</strong>
+                      <span>Choose which services appear in the visitor dropdown.</span>
+                    </div>
+                    {services.map((service) => (
+                      <label className="toggle" key={service.id}>
+                        <input checked={(data.content.contact.serviceIds ?? []).includes(service.id)} type="checkbox" onChange={(event) => toggleContactService(service.id, event.target.checked)} />
+                        {text(service.title, contentLanguage)}
+                      </label>
+                    ))}
+                  </div>
                 </>
               )}
             </section>

@@ -24,19 +24,6 @@ const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const phoneDigits = (value: string) => value.replace(/\D/g, "");
-const contactServiceIds = new Set([
-  "event-styling",
-  "personal-shopping",
-  "photoshoot-styling",
-  "style-dna-online",
-  "travel-capsule",
-  "capsule-wardrobe-online",
-  "wardrobe-styling",
-  "wardrobe-detox",
-  "editorial-fashion-styling",
-  "lookbook-styling",
-  "brand-campaign-styling",
-]);
 const defaultSubjects: Record<Language, string> = {
   en: "I'd like to book a styling consultation",
   ru: "Я хочу забронировать стилистическую консультацию",
@@ -523,6 +510,7 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
 }
 
 function Contact({ data, form, formNote, language, services, setForm, submitContact, t }: { data: StudioData; form: { firstName: string; lastName: string; service: string; message: string }; formNote: string; language: Language; services: Service[]; setForm: (form: { firstName: string; lastName: string; service: string; message: string }) => void; submitContact: (event: FormEvent<HTMLFormElement>) => void; t: Record<string, string | string[]> }) {
+  const contactServiceIds = new Set(data.content.contact.serviceIds);
   const serviceOptions = services.filter((service) => contactServiceIds.has(service.id));
 
   return (

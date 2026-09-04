@@ -64,6 +64,7 @@ export type SiteContent = {
     whatsappNumber: string;
     instagramUrl: string;
     email: string;
+    serviceIds: string[];
   };
 };
 
@@ -97,6 +98,20 @@ export const categoryLabels: Record<PortfolioCategory, LocalizedString> = {
   Studio: l("Studio", "Студия"),
   Fashion: l("Fashion", "Мода"),
 };
+
+export const defaultContactServiceIds = [
+  "event-styling",
+  "personal-shopping",
+  "photoshoot-styling",
+  "style-dna-online",
+  "travel-capsule",
+  "capsule-wardrobe-online",
+  "wardrobe-styling",
+  "wardrobe-detox",
+  "editorial-fashion-styling",
+  "lookbook-styling",
+  "brand-campaign-styling",
+];
 
 export const initialStudioData: StudioData = {
   siteCopy: {
@@ -132,6 +147,7 @@ export const initialStudioData: StudioData = {
       whatsappNumber: "+1 310 804 0450",
       instagramUrl: "https://www.instagram.com/aleynikovaa",
       email: "anastyling@gmail.com",
+      serviceIds: defaultContactServiceIds,
     },
   },
   services: [
@@ -143,7 +159,7 @@ export const initialStudioData: StudioData = {
       deliverables: [],
       group: "Personal Styling",
       price: l("$250", "$250"),
-      image: "/ana-photos/fashion.jpg",
+      image: "/ana-photos/local-preview/event-styling-original.png",
       order: 1,
       published: true,
     },
