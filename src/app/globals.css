@@ -6482,7 +6482,8 @@ section[id],
 }
 
 .public-site .campaign-hero::before {
-  z-index: 2 !important;
+  content: none !important;
+  display: none !important;
 }
 
 .public-site .hero-cover-word-back,
