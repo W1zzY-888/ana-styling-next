@@ -6526,3 +6526,51 @@ section[id],
     width: 72vw !important;
   }
 }
+
+/* Mobile-only hero/contact corrections. */
+@media (max-width: 768px) {
+  .public-site .hero-cover-word-back {
+    font-size: clamp(3.25rem, 15vw, 5.25rem) !important;
+    line-height: 0.88 !important;
+    margin: 78px 20px 0 !important;
+    max-width: 7.1ch !important;
+    transform: none !important;
+  }
+
+  .public-site .campaign-hero::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  .public-site .campaign-copy {
+    background: transparent !important;
+    margin: auto 20px 34px !important;
+    max-width: calc(100% - 40px) !important;
+  }
+
+  .public-site .contact-form {
+    overflow: hidden !important;
+  }
+
+  .public-site .contact-form .whatsapp-cta {
+    box-sizing: border-box !important;
+    justify-content: space-between !important;
+    margin: 8px auto 0 !important;
+    min-height: 52px !important;
+    padding: 0 10px 0 20px !important;
+    width: calc(100% - 48px) !important;
+  }
+
+  .public-site .contact-form .whatsapp-cta span {
+    font-size: 0.78rem !important;
+    letter-spacing: 0.14em !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+  }
+
+  .public-site .contact-form .whatsapp-cta b {
+    flex: 0 0 42px !important;
+    height: 42px !important;
+    width: 42px !important;
+  }
+}
