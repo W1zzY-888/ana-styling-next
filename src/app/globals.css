@@ -6531,6 +6531,7 @@ section[id],
 @media (max-width: 768px) {
   .public-site .campaign-hero {
     align-content: start !important;
+    align-items: stretch !important;
     display: flex !important;
     flex-direction: column !important;
     min-height: 100svh !important;
@@ -6538,11 +6539,13 @@ section[id],
   }
 
   .public-site .hero-cover-word-back {
+    align-self: flex-start !important;
     flex: 0 0 auto !important;
-    font-size: clamp(3rem, 12.4vw, 4.25rem) !important;
-    line-height: 1.08 !important;
-    margin: 52px 20px 0 !important;
-    max-width: 7.9ch !important;
+    font-size: clamp(2.75rem, 11vw, 3.85rem) !important;
+    line-height: 1.12 !important;
+    margin: 92px 20px 0 !important;
+    max-width: 8.1ch !important;
+    place-self: auto !important;
     transform: none !important;
   }
 
@@ -6552,10 +6555,14 @@ section[id],
   }
 
   .public-site .campaign-copy {
+    align-self: flex-start !important;
     background: transparent !important;
     flex: 0 0 auto !important;
-    margin: 14px 20px 0 !important;
+    margin: 22px 20px 0 !important;
     max-width: calc(100% - 40px) !important;
+    place-self: auto !important;
+    text-align: left !important;
+    width: calc(100% - 40px) !important;
   }
 
   .public-site .campaign-copy .eyebrow {
