@@ -6610,11 +6610,11 @@ section[id],
     display: grid !important;
     gap: 0 !important;
     left: auto !important;
-    max-width: calc(100vw - 32px) !important;
-    padding: 10px 18px 14px !important;
-    right: 16px !important;
+    max-width: calc(100vw - 28px) !important;
+    padding: 10px 16px 14px !important;
+    right: 14px !important;
     top: 92px !important;
-    width: min(62vw, 276px) !important;
+    width: min(48vw, 218px) !important;
   }
 
   .public-site .lux-nav a {
@@ -6623,7 +6623,7 @@ section[id],
     font-size: 0.72rem !important;
     letter-spacing: 0.18em !important;
     padding: 18px 0 15px !important;
-    text-align: right !important;
+    text-align: center !important;
   }
 
   .public-site .lux-nav a:last-of-type {
