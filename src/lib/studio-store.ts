@@ -1,4 +1,4 @@
-import { defaultContactServiceIds, initialStudioData, type PortfolioItem, type Publication, type Service, type StudioData } from "@/data/site";
+import { initialStudioData, type PortfolioItem, type Publication, type Service, type StudioData } from "@/data/site";
 import { localized } from "@/lib/i18n";
 
 export const STUDIO_STORAGE_KEY = "ana-styling-studio-data";
@@ -73,7 +73,6 @@ export function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCo
         whatsappNumber: value.content?.contact?.whatsappNumber ?? initialStudioData.content.contact.whatsappNumber,
         instagramUrl: value.content?.contact?.instagramUrl ?? initialStudioData.content.contact.instagramUrl,
         email: value.content?.contact?.email ?? initialStudioData.content.contact.email,
-        serviceIds: value.content?.contact?.serviceIds?.length ? value.content.contact.serviceIds : defaultContactServiceIds,
       },
     },
     services: mergeServices(value.services, refreshDefaultCopy),
