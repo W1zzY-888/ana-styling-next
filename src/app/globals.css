@@ -6518,6 +6518,29 @@ section[id],
   justify-self: start !important;
 }
 
+.public-site .portfolio-preview {
+  display: block !important;
+  margin-top: clamp(22px, 3vw, 38px) !important;
+  min-height: 0 !important;
+}
+
+.public-site .portfolio-preview button:not(.portfolio-open) {
+  display: none !important;
+}
+
+.public-site .fashion-portfolio:not(.full-page-section) {
+  padding-bottom: clamp(56px, 7vw, 88px) !important;
+}
+
+.public-site .portfolio-preview .portfolio-open {
+  color: #fff0df !important;
+  text-shadow: 0 2px 14px rgba(18, 2, 4, 0.78) !important;
+}
+
+.public-site .portfolio-preview .portfolio-open::after {
+  color: #f05b68 !important;
+}
+
 @media (max-width: 768px) {
   .public-site .text-link,
   .public-site .section-link,
@@ -6528,5 +6551,9 @@ section[id],
     letter-spacing: 0.16em !important;
     min-height: 58px !important;
     width: min(100%, 340px) !important;
+  }
+
+  .public-site .fashion-portfolio:not(.full-page-section) {
+    padding-bottom: 52px !important;
   }
 }
