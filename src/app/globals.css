@@ -6633,4 +6633,14 @@ section[id],
   .public-site .lux-nav a::after {
     display: none !important;
   }
+
+  .public-site .featured-service p {
+    display: block !important;
+    height: auto !important;
+    line-height: 1.55 !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    white-space: normal !important;
+    word-break: normal !important;
+  }
 }

@@ -5,7 +5,13 @@ export function text(value: LocalizedString | string, language: Language) {
     return value;
   }
 
-  return value[language] || value.en || value.ru || "";
+  const current = value[language] || value.en || value.ru || "";
+
+  if (language === "ru" && current.includes("high-visibility moments")) {
+    return "Полные образы для ужинов, запусков, свадеб и важных выходов.";
+  }
+
+  return current;
 }
 
 export function localized(value: LocalizedString | string): LocalizedString {
