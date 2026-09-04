@@ -6603,26 +6603,27 @@ section[id],
   }
 
   .public-site .lux-nav {
-    background: rgba(251, 246, 238, 0.98) !important;
-    border: 1px solid rgba(151, 29, 43, 0.22) !important;
-    border-right: 0 !important;
-    box-shadow: 0 18px 45px rgba(36, 29, 27, 0.13) !important;
+    background:
+      linear-gradient(180deg, rgba(251, 246, 238, 0.98), rgba(244, 235, 224, 0.98)) !important;
+    border: 1px solid rgba(151, 29, 43, 0.2) !important;
+    box-shadow: 0 22px 52px rgba(36, 29, 27, 0.12) !important;
     display: grid !important;
     gap: 0 !important;
     left: auto !important;
-    padding: 18px 0 !important;
-    right: 0 !important;
-    top: 82px !important;
-    width: min(56vw, 236px) !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 10px 18px 14px !important;
+    right: 16px !important;
+    top: 92px !important;
+    width: min(62vw, 276px) !important;
   }
 
   .public-site .lux-nav a {
-    border-bottom: 1px solid rgba(151, 29, 43, 0.18) !important;
+    border-bottom: 1px solid rgba(151, 29, 43, 0.16) !important;
     color: rgba(36, 29, 27, 0.88) !important;
-    font-size: 0.74rem !important;
-    letter-spacing: 0.14em !important;
-    padding: 17px 28px !important;
-    text-align: left !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.18em !important;
+    padding: 18px 0 15px !important;
+    text-align: right !important;
   }
 
   .public-site .lux-nav a:last-of-type {
