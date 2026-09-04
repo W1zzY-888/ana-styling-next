@@ -6490,3 +6490,39 @@ section[id],
   position: relative !important;
   z-index: 4 !important;
 }
+
+/* Hero alignment cleanup: title starts with the copy line, no dark photo block under CTAs. */
+.public-site .hero-cover-word-back {
+  margin-left: clamp(20px, 5vw, 92px) !important;
+  transform: none !important;
+}
+
+.public-site .campaign-copy {
+  margin-left: clamp(20px, 5vw, 92px) !important;
+}
+
+.public-site .campaign-hero::after {
+  background:
+    linear-gradient(90deg, rgba(23, 9, 11, 0.94) 0%, rgba(23, 9, 11, 0.82) 46%, rgba(23, 9, 11, 0) 100%) !important;
+  bottom: 0 !important;
+  content: "" !important;
+  display: block !important;
+  height: clamp(190px, 28vh, 340px) !important;
+  left: 0 !important;
+  pointer-events: none !important;
+  position: absolute !important;
+  width: min(44vw, 620px) !important;
+  z-index: 3 !important;
+}
+
+@media (max-width: 768px) {
+  .public-site .hero-cover-word-back,
+  .public-site .campaign-copy {
+    margin-left: 20px !important;
+  }
+
+  .public-site .campaign-hero::after {
+    height: 240px !important;
+    width: 72vw !important;
+  }
+}
