@@ -359,7 +359,14 @@ function Hero({ data, language, t }: { data: StudioData; language: Language; t: 
     <section id="home" className="campaign-hero">
       <div className="hero-cover-word hero-cover-word-back">{t.heroTitle as string}</div>
       <figure className="campaign-image reveal">
-        <img loading="eager" src={assetSrc(data.content.homepage.heroImage)} alt={language === "en" ? "Ana Styling hero editorial" : "Главное фото Ana Styling"} />
+        <img
+          loading="eager"
+          src={assetSrc(data.content.homepage.heroImage || "/ana-photos/hero.jpg")}
+          onError={(event) => {
+            event.currentTarget.src = assetSrc("/ana-photos/hero.jpg");
+          }}
+          alt={language === "en" ? "Ana Styling hero editorial" : "Главное фото Ana Styling"}
+        />
       </figure>
       <div className="campaign-copy reveal">
         <p className="eyebrow">{t.heroRole as string}</p>
