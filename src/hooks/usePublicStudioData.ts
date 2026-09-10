@@ -11,8 +11,11 @@ export function usePublicStudioData() {
 
   useEffect(() => {
     let isMounted = true;
+    let isRefreshing = false;
 
     async function loadPublicData() {
+      if (isRefreshing || !isMounted) return;
+      isRefreshing = true;
       try {
         if (!isSupabaseConfigured) {
           setData(loadStudioData());
@@ -32,13 +35,24 @@ export function usePublicStudioData() {
           setData(initialStudioData);
           setIsLoading(false);
         }
+      } finally {
+        isRefreshing = false;
       }
     }
 
     loadPublicData();
+    const refresh = () => {
+      if (document.visibilityState === "visible") void loadPublicData();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const interval = window.setInterval(refresh, 30000);
 
     return () => {
       isMounted = false;
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      window.clearInterval(interval);
     };
   }, []);
 

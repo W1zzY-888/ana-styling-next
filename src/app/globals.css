@@ -5515,9 +5515,9 @@ h3,
   margin-bottom: 18px;
   min-height: 52px;
   padding: 10px 14px;
-  position: sticky;
+  position: static;
   top: 0;
-  z-index: 30;
+  z-index: auto;
 }
 
 .admin-save-status span,
@@ -5909,6 +5909,37 @@ h3,
 .admin-sticky-save .button:disabled {
   cursor: not-allowed;
   opacity: 0.42;
+}
+
+.admin-content .admin-save-status {
+  position: static !important;
+  flex-wrap: wrap;
+}
+
+.admin-content .admin-update-button {
+  background: var(--wine);
+  color: #fff;
+  border: 1px solid var(--wine);
+  border-radius: 4px;
+  padding: 10px 20px;
+  min-height: 44px;
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.admin-content .admin-update-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.admin-update-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 24px 0;
 }
 
 .admin-save-status.dirty span {

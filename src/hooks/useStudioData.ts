@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type StudioData } from "@/data/site";
+import { jsonEqual } from "@/lib/json-equal";
 import { loadStudioData, normalizeStudioData, saveStudioData } from "@/lib/studio-store";
 import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
 
 export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 
 function sameStudioData(a: StudioData, b: StudioData) {
-  return JSON.stringify(a) === JSON.stringify(b);
+  return jsonEqual(a, b);
 }
 
 export function useStudioData() {
@@ -19,7 +20,6 @@ export function useStudioData() {
   const [isSyncing, setIsSyncing] = useState(false);
   const hasLocalDraftRef = useRef(false);
   const isSavingRef = useRef(false);
-  const lastFailedDraftRef = useRef<StudioData | null>(null);
 
   const hasUnsavedChanges = !sameStudioData(data, savedData);
 
@@ -94,33 +94,40 @@ export function useStudioData() {
     setSaveStatus("saving");
     setSaveError("");
 
-    const result = await saveStudioDataToSupabase(draft);
+    try {
+      const result = await saveStudioDataToSupabase(draft);
 
-    if (!result.ok) {
-      lastFailedDraftRef.current = draft;
+      if (!result.ok) {
+        setSaveStatus("error");
+        setSaveError(result.message);
+        return false;
+      }
+
+      saveStudioData(result.data);
+      setSavedData(result.data);
+      setData((current) => {
+        const unchanged = sameStudioData(current, draft);
+        hasLocalDraftRef.current = !unchanged;
+        return unchanged ? result.data : current;
+      });
+      setSaveStatus("saved");
+      return true;
+    } catch (error) {
+      console.error("Ana Styling could not save studio data.", error);
       setSaveStatus("error");
-      setSaveError(result.message);
-      isSavingRef.current = false;
+      setSaveError("Couldn’t save — Retry");
       return false;
+    } finally {
+      isSavingRef.current = false;
     }
-
-    saveStudioData(result.data);
-    setSavedData(result.data);
-    setData(result.data);
-    hasLocalDraftRef.current = false;
-    lastFailedDraftRef.current = null;
-    setSaveStatus("saved");
-    isSavingRef.current = false;
-    return true;
   }, [data, savedData]);
 
   function retrySave() {
-    return saveChanges(lastFailedDraftRef.current ?? data);
+    return saveChanges(data);
   }
 
   function discardDraft() {
     hasLocalDraftRef.current = false;
-    lastFailedDraftRef.current = null;
     setSaveError("");
     setSaveStatus("idle");
     setData(savedData);

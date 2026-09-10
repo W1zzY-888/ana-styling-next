@@ -31,7 +31,6 @@ import { deleteSubmittedReview, getAdminSession, isCurrentUserStudioAdmin, isSup
 
 type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Reviews" | "Contact";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
-type LeavePrompt = { view: View } | null;
 
 const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const imageSizes: PortfolioImageSize[] = ["Small", "Medium", "Large"];
@@ -149,7 +148,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 
 export function AdminApp() {
   const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" || isSupabaseConfigured ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
-  const { data, hasUnsavedChanges, retrySave, saveChanges, saveError, saveStatus, updateData } = useStudioData();
+  const { data, hasUnsavedChanges, saveChanges, saveError, saveStatus, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(data.services[0]?.id ?? null);
@@ -159,7 +158,6 @@ export function AdminApp() {
   const [mode, setMode] = useState<"Edit" | "Preview">("Edit");
   const [contentLanguage, setContentLanguage] = useState<Language>("en");
   const [confirm, setConfirm] = useState<ConfirmAction>(null);
-  const [leavePrompt, setLeavePrompt] = useState<LeavePrompt>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [undoPhoto, setUndoPhoto] = useState<{ itemId: string; image: PortfolioImage } | null>(null);
   const sensors = useSensors(
@@ -221,26 +219,22 @@ export function AdminApp() {
     };
   }, [isUnlocked]);
 
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeLeaving);
+    return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
+  }, [hasUnsavedChanges]);
+
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
   }
 
-  async function continueTo(view: View, shouldSave: boolean) {
-    if (shouldSave) {
-      const saved = await saveChanges();
-      if (!saved) return;
-    }
-    setLeavePrompt(null);
-    setIsMoreOpen(false);
-    setActive(view);
-  }
-
   function navigateTo(view: View) {
     if (active === view) return;
-    if (hasUnsavedChanges) {
-      setLeavePrompt({ view });
-      return;
-    }
     setIsMoreOpen(false);
     setActive(view);
   }
@@ -313,7 +307,11 @@ export function AdminApp() {
     if (data.reviews.some((item) => item.id === review.id)) {
       updateReview(review.id, { photo });
     } else {
-      await updateSubmittedReview(review.id, { photo });
+      const saved = await updateSubmittedReview(review.id, { photo });
+      if (!saved) {
+        window.alert("Couldn’t save — Retry");
+        return;
+      }
       setSubmittedReviews((current) => current.map((item) => (item.id === review.id ? { ...item, photo } : item)));
     }
 
@@ -328,6 +326,7 @@ export function AdminApp() {
     }
 
     const saved = await updateSubmittedReview(review.id, { published });
+    if (!saved) window.alert("Couldn’t save — Retry");
     if (saved) setSubmittedReviews((current) => current.map((item) => (item.id === review.id ? { ...item, published } : item)));
   }
 
@@ -341,6 +340,7 @@ export function AdminApp() {
         } else {
           deleteSubmittedReview(review.id).then((deleted) => {
             if (deleted) setSubmittedReviews((current) => current.filter((item) => item.id !== review.id));
+            else window.alert("Couldn’t delete review. Please try again.");
           });
         }
       },
@@ -729,7 +729,9 @@ export function AdminApp() {
       <section className="admin-content">
         <div className={`admin-save-status ${saveStatus}`}>
           <span>{saveStatus === "dirty" ? "Unsaved changes" : saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
-          {saveStatus === "error" && <button type="button" onClick={retrySave}>Retry</button>}
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
+            {saveStatus === "saving" ? "Обновление…" : "Обновить"}
+          </button>
           <a href={previewHref} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
         </div>
         {active === "Dashboard" && (
@@ -1033,6 +1035,11 @@ export function AdminApp() {
           </div>
         )}
 
+        <div className="admin-update-footer">
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
+            {saveStatus === "saving" ? "Обновление…" : "Обновить"}
+          </button>
+        </div>
       </section>
 
       {confirm && (
@@ -1041,20 +1048,6 @@ export function AdminApp() {
             <h3>{confirm.title}</h3>
             <p>{confirm.body}</p>
             <div><button type="button" onClick={() => setConfirm(null)}>Cancel</button><button type="button" onClick={() => { confirm.action(); setConfirm(null); }}>Delete</button></div>
-          </div>
-        </div>
-      )}
-
-      {leavePrompt && (
-        <div className="confirm-modal" role="dialog" aria-modal="true" aria-label="Unsaved changes">
-          <div className="confirm-panel leave-panel">
-            <h3>You have unsaved changes.</h3>
-            <p>Save before leaving?</p>
-            <div>
-              <button type="button" onClick={() => setLeavePrompt(null)}>Cancel</button>
-              <button type="button" onClick={() => continueTo(leavePrompt.view, false)}>Discard</button>
-              <button className="primary" type="button" onClick={() => continueTo(leavePrompt.view, true)}>Save & continue</button>
-            </div>
           </div>
         </div>
       )}
@@ -1080,11 +1073,6 @@ export function AdminApp() {
         </div>
       )}
 
-      <div className={`admin-sticky-save ${hasUnsavedChanges || saveStatus === "saving" || saveStatus === "error" ? "is-visible" : "is-idle"}`}>
-        <button className="button primary" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
-          {saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? "Retry Save changes" : "Save changes"}
-        </button>
-      </div>
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { jsonEqual } from "@/lib/json-equal";
 import { type Review, type StudioData } from "@/data/site";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -120,7 +121,7 @@ export async function saveStudioDataToSupabase(data: StudioData): Promise<Studio
 
   const remote = await loadStudioDataFromSupabase();
 
-  if (!remote || JSON.stringify(remote.data) !== JSON.stringify(data)) {
+  if (!remote || !jsonEqual(remote.data, data)) {
     console.error("Ana Styling remote content did not match the saved draft.", remote);
     return { ok: false, message: "Couldn’t save — Retry" };
   }
@@ -210,7 +211,7 @@ export async function loadSubmittedReviews() {
 export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; photo?: string; published?: boolean }) {
   if (!supabase) return false;
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("studio_reviews")
     .update({
       ...(patch.name !== undefined ? { name: patch.name } : {}),
@@ -219,29 +220,33 @@ export async function updateSubmittedReview(id: string, patch: { name?: string; 
       ...(patch.published !== undefined ? { published: patch.published } : {}),
     })
     .eq("studio_id", studioId)
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .single();
 
   if (error) {
     console.error("Ana Styling could not update submitted review.", error);
     return false;
   }
 
-  return true;
+  return updated?.id === id;
 }
 
 export async function deleteSubmittedReview(id: string) {
   if (!supabase) return false;
 
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from("studio_reviews")
     .delete()
     .eq("studio_id", studioId)
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .single();
 
   if (error) {
     console.error("Ana Styling could not delete submitted review.", error);
     return false;
   }
 
-  return true;
+  return deleted?.id === id;
 }
