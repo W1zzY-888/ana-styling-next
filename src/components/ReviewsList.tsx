@@ -16,10 +16,9 @@ function ReviewEntry({ review, language }: { review: Review; language: Language 
     <div>
       <div className="review-author">
         <h3>{mood && <span className="review-mood" aria-hidden="true">{mood}</span>}{review.name}</h3>
-        {validDate && <time dateTime={date.toISOString()} title={language === "ru" ? "Время Майами" : "Miami time"}>
+        {validDate && <time dateTime={date.toISOString()}>
           {new Intl.DateTimeFormat(language === "ru" ? "ru-RU" : "en-US", {
-            day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
-            hour12: false, timeZone: "America/New_York",
+            day: "numeric", month: "short", year: "numeric", timeZone: "America/New_York",
           }).format(date)}
         </time>}
       </div>
