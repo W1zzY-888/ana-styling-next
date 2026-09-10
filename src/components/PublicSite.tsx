@@ -17,6 +17,7 @@ import { usePublicStudioData } from "@/hooks/usePublicStudioData";
 import { text } from "@/lib/i18n";
 import { submitReview } from "@/lib/supabase-studio";
 import { ReviewRating } from "@/components/ReviewRating";
+import { ReviewsList } from "@/components/ReviewsList";
 
 type PublicPage = "home" | "services" | "portfolio" | "publications" | "reviews";
 
@@ -612,18 +613,7 @@ function ReviewsSection({ form, isFullPage, language, note, sending, reviews, se
         </div>
       </div>
       <div className="reviews-layout">
-        <div className="reviews-grid">
-          {reviews.length === 0 && <p className="reviews-empty">{t.reviewEmpty as string}</p>}
-          {reviews.map((review) => (
-            <article className="review-card reveal" key={review.id}>
-              <div>
-                <ReviewRating value={review.rating} language={language} />
-                <h3>{review.name}</h3>
-                <p>{text(review.text, language)}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        <ReviewsList reviews={reviews} language={language} isFullPage={isFullPage} allHref={pageHref("/reviews/")} />
         <form className="review-form contact-form reveal" onSubmit={submitReview} noValidate>
           <fieldset className="review-form-fields" disabled={sending}>
             <ReviewRating value={form.rating} language={language} onChange={(rating) => setForm({ ...form, rating })} />
