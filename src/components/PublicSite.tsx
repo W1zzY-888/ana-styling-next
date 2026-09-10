@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, type ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { type ReactNode, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   categoryLabels,
   initialStudioData,
@@ -15,7 +15,8 @@ import {
 } from "@/data/site";
 import { usePublicStudioData } from "@/hooks/usePublicStudioData";
 import { text } from "@/lib/i18n";
-import { submitReview, uploadReviewPhoto } from "@/lib/supabase-studio";
+import { submitReview } from "@/lib/supabase-studio";
+import { ReviewRating } from "@/components/ReviewRating";
 
 type PublicPage = "home" | "services" | "portfolio" | "publications" | "reviews";
 
@@ -69,10 +70,12 @@ const dictionary = {
     showLess: "Show less",
     reviewName: "Name",
     reviewText: "Review text",
-    reviewPhoto: "Optional photo",
+    reviewEmpty: "Be the first to share your experience.",
+    reviewSending: "Sending…",
+    reviewError: "Couldn’t send review. Please try again.",
     sendReview: "Submit review",
     reviewThanks: "Thank you. Your review was sent for approval.",
-    reviewValidation: "Please add your name and review text.",
+    reviewValidation: "Please add your name, review text and a rating from 1 to 5.",
     contact: "Contact",
     contactLinks: "Contact links",
     firstName: "First Name",
@@ -117,10 +120,12 @@ const dictionary = {
     showLess: "Свернуть",
     reviewName: "Имя",
     reviewText: "Текст отзыва",
-    reviewPhoto: "Фото по желанию",
+    reviewEmpty: "Будьте первым, кто поделится впечатлениями.",
+    reviewSending: "Отправка…",
+    reviewError: "Не удалось отправить отзыв. Попробуйте ещё раз.",
     sendReview: "Оставить отзыв",
     reviewThanks: "Спасибо. Ваш отзыв отправлен на модерацию.",
-    reviewValidation: "Укажите имя и текст отзыва.",
+    reviewValidation: "Укажите имя, текст отзыва и оценку от 1 до 5.",
     contact: "Контакты",
     contactLinks: "Ссылки для связи",
     firstName: "Имя",
@@ -155,8 +160,9 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", service: "", message: "" });
-  const [reviewForm, setReviewForm] = useState({ name: "", text: "", photo: "" });
-  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
+  const [reviewForm, setReviewForm] = useState({ name: "", text: "", rating: 0 });
+  const [reviewSending, setReviewSending] = useState(false);
+  const reviewSendingRef = useRef(false);
   const [reviewNote, setReviewNote] = useState("");
   const [formNote, setFormNote] = useState("");
   const [year] = useState(() => new Date().getFullYear());
@@ -261,32 +267,25 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
     window.open(`https://wa.me/${phoneDigits(studioData.content.contact.whatsappNumber)}?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
   }
 
-  async function handleReviewPhoto(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setReviewPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = () => setReviewForm((current) => ({ ...current, photo: String(reader.result) }));
-    reader.readAsDataURL(file);
-  }
-
   async function submitReviewForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
+    if (reviewSendingRef.current) return;
+    if (!reviewForm.name.trim() || !reviewForm.text.trim() || reviewForm.rating < 1 || reviewForm.rating > 5) {
       setReviewNote(t.reviewValidation as string);
       return;
     }
-    const uploadedPhotoUrl = reviewPhotoFile ? await uploadReviewPhoto(reviewPhotoFile) : undefined;
-    const photoUrl = uploadedPhotoUrl || undefined;
-    if (reviewPhotoFile && !photoUrl) {
-      setReviewNote("Couldn’t upload photo. Please try again.");
-      return;
-    }
-    const result = await submitReview({ name: reviewForm.name.trim(), text: reviewForm.text.trim(), photoUrl });
-    setReviewNote(result.ok ? t.reviewThanks as string : result.message);
-    if (result.ok) {
-      setReviewForm({ name: "", text: "", photo: "" });
-      setReviewPhotoFile(null);
+    reviewSendingRef.current = true;
+    setReviewSending(true);
+    setReviewNote("");
+    try {
+      const result = await submitReview({ name: reviewForm.name.trim(), text: reviewForm.text.trim(), rating: reviewForm.rating });
+      setReviewNote((result.ok ? t.reviewThanks : t.reviewError) as string);
+      if (result.ok) setReviewForm({ name: "", text: "", rating: 0 });
+    } catch {
+      setReviewNote(t.reviewError as string);
+    } finally {
+      reviewSendingRef.current = false;
+      setReviewSending(false);
     }
   }
 
@@ -319,7 +318,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
             visiblePortfolio={visiblePortfolio}
           />
           <PublicationsPreview language={language} publications={visiblePublications.slice(0, 2)} t={t} onOpen={setSelectedPublication} />
-          <ReviewsSection form={reviewForm} language={language} note={reviewNote} onPhotoChange={handleReviewPhoto} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />
+          <ReviewsSection form={reviewForm} language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />
         </>
       )}
       {page === "services" && (
@@ -361,7 +360,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           </div>
         </section>
       )}
-      {page === "reviews" && <ReviewsSection form={reviewForm} isFullPage language={language} note={reviewNote} onPhotoChange={handleReviewPhoto} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />}
+      {page === "reviews" && <ReviewsSection form={reviewForm} isFullPage language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />}
       {page !== "publications" && page !== "portfolio" && page !== "reviews" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={studioData} />}
       <Footer data={studioData} language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
@@ -593,14 +592,14 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
   );
 }
 
-function ReviewsSection({ form, isFullPage, language, note, onPhotoChange, reviews, setForm, submitReview, t }: {
-  form: { name: string; text: string; photo: string };
+function ReviewsSection({ form, isFullPage, language, note, sending, reviews, setForm, submitReview, t }: {
+  form: { name: string; text: string; rating: number };
   isFullPage?: boolean;
   language: Language;
   note: string;
-  onPhotoChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  sending: boolean;
   reviews: Review[];
-  setForm: (form: { name: string; text: string; photo: string }) => void;
+  setForm: (form: { name: string; text: string; rating: number }) => void;
   submitReview: (event: FormEvent<HTMLFormElement>) => void;
   t: Record<string, string | string[]>;
 }) {
@@ -614,10 +613,11 @@ function ReviewsSection({ form, isFullPage, language, note, onPhotoChange, revie
       </div>
       <div className="reviews-layout">
         <div className="reviews-grid">
+          {reviews.length === 0 && <p className="reviews-empty">{t.reviewEmpty as string}</p>}
           {reviews.map((review) => (
             <article className="review-card reveal" key={review.id}>
-              {review.photo && <img loading="lazy" src={assetSrc(review.photo)} alt="" />}
               <div>
+                <ReviewRating value={review.rating} language={language} />
                 <h3>{review.name}</h3>
                 <p>{text(review.text, language)}</p>
               </div>
@@ -625,11 +625,13 @@ function ReviewsSection({ form, isFullPage, language, note, onPhotoChange, revie
           ))}
         </div>
         <form className="review-form contact-form reveal" onSubmit={submitReview} noValidate>
-          <label>{t.reviewName as string}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-          <label>{t.reviewText as string}<textarea rows={5} value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
-          <label>{t.reviewPhoto as string}<input accept="image/*" type="file" onChange={onPhotoChange} /></label>
+          <fieldset className="review-form-fields" disabled={sending}>
+            <ReviewRating value={form.rating} language={language} onChange={(rating) => setForm({ ...form, rating })} />
+            <label>{t.reviewName as string}<input autoComplete="name" maxLength={100} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+            <label>{t.reviewText as string}<textarea rows={5} maxLength={3000} value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
+          </fieldset>
           {note && <p className="form-note" role="status">{note}</p>}
-          <button className="stylist-cta whatsapp-cta" type="submit"><span>{t.sendReview as string}</span><b aria-hidden="true">→</b></button>
+          <button className="stylist-cta whatsapp-cta" type="submit" disabled={sending}><span>{(sending ? t.reviewSending : t.sendReview) as string}</span><b aria-hidden="true">→</b></button>
         </form>
       </div>
     </section>

@@ -51,7 +51,7 @@ export type Review = {
   id: string;
   name: string;
   text: LocalizedString;
-  photo?: string;
+  rating: number | null;
   order: number;
   published: boolean;
   createdAt: string;
@@ -354,20 +354,7 @@ export const initialStudioData: StudioData = {
       published: true,
     },
   ],
-  reviews: [
-    {
-      id: "review-1",
-      name: "Client",
-      text: l(
-        "Ana helped me see my wardrobe in a completely new way. Every look felt refined, practical, and very personal.",
-        "Ana помогла мне увидеть гардероб совершенно по-новому. Каждый образ получился продуманным, практичным и очень личным.",
-      ),
-      photo: "/ana-photos/about-ana.jpg",
-      order: 1,
-      published: true,
-      createdAt: "2026-01-01T00:00:00.000Z",
-    },
-  ],
+  reviews: [],
 };
 
 export const siteCopy = {

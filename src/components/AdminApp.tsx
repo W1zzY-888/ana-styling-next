@@ -27,7 +27,8 @@ import {
 } from "@/data/site";
 import { useStudioData } from "@/hooks/useStudioData";
 import { localized, text } from "@/lib/i18n";
-import { deleteSubmittedReview, getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, loadSubmittedReviews, signInAdmin, signOutAdmin, updateSubmittedReview, uploadReviewPhoto, uploadStudioImage } from "@/lib/supabase-studio";
+import { deleteSubmittedReview, getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, loadSubmittedReviews, signInAdmin, signOutAdmin, updateSubmittedReview, uploadStudioImage } from "@/lib/supabase-studio";
+import { ReviewRating } from "@/components/ReviewRating";
 
 type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Reviews" | "Contact";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
@@ -289,6 +290,7 @@ export function AdminApp() {
           id,
           name: "Client",
           text: { en: "New review", ru: "Новый отзыв" },
+          rating: 5,
           order: current.reviews.length + 1,
           published: false,
           createdAt: new Date().toISOString(),
@@ -296,26 +298,6 @@ export function AdminApp() {
       ],
     }));
     setActive("Reviews");
-  }
-
-  async function updateReviewPhoto(review: Review, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const photo = await uploadReviewPhoto(file);
-    if (!photo) return;
-
-    if (data.reviews.some((item) => item.id === review.id)) {
-      updateReview(review.id, { photo });
-    } else {
-      const saved = await updateSubmittedReview(review.id, { photo });
-      if (!saved) {
-        window.alert("Couldn’t save — Retry");
-        return;
-      }
-      setSubmittedReviews((current) => current.map((item) => (item.id === review.id ? { ...item, photo } : item)));
-    }
-
-    event.target.value = "";
   }
 
   async function toggleReview(review: Review) {
@@ -996,20 +978,21 @@ export function AdminApp() {
         )}
 
         {active === "Reviews" && (
-          <div className="admin-view">
+          <div className="admin-view reviews-admin-view">
             <div className="admin-heading">
               <div><p className="eyebrow">Reviews</p><h2>Client reviews</h2></div>
               <button className="button primary" type="button" onClick={addReview}>Add Review</button>
             </div>
             <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
             <div className="cms-card-grid reviews-admin-grid">
+              {reviews.length === 0 && <p className="reviews-empty">{contentLanguage === "ru" ? "Отзывов пока нет." : "No reviews yet."}</p>}
               {reviews.map((review) => {
                 const isManual = data.reviews.some((item) => item.id === review.id);
 
                 return (
                   <article className="cms-item-card review-admin-card" key={review.id}>
-                    {review.photo ? <img src={assetSrc(review.photo)} alt="" /> : <div className="review-photo-placeholder">Review</div>}
                     <div className="review-admin-fields">
+                      <ReviewRating value={review.rating} language={contentLanguage} onChange={isManual ? (rating) => updateReview(review.id, { rating }) : undefined} />
                       {isManual ? (
                         <>
                           <label>Name<input value={review.name} onChange={(event) => updateReview(review.id, { name: event.target.value })} /></label>
@@ -1024,7 +1007,6 @@ export function AdminApp() {
                       <small>{review.published ? "Visible on website" : "Hidden / pending"}</small>
                     </div>
                     <div className="admin-card-actions">
-                      <label>Photo<input type="file" accept="image/*" onChange={(event) => updateReviewPhoto(review, event)} /></label>
                       <button type="button" onClick={() => toggleReview(review)}>{review.published ? "Hide" : "Publish"}</button>
                       <button type="button" onClick={() => removeReview(review)}>Delete</button>
                     </div>

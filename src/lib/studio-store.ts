@@ -174,18 +174,16 @@ function normalizePublication(publication: Partial<Publication>, index: number, 
 }
 
 function mergeReviews(savedReviews?: Partial<Review>[]) {
-  if (!savedReviews?.length) return initialStudioData.reviews;
+  if (!savedReviews?.length) return [];
   return savedReviews.map((review, index) => normalizeReview(review, index)).map((review, index) => ({ ...review, order: review.order || index + 1 }));
 }
 
 function normalizeReview(review: Partial<Review>, index: number): Review {
-  const fallback = initialStudioData.reviews[index] ?? initialStudioData.reviews[0];
-
   return {
-    ...fallback,
-    ...review,
-    name: review.name ?? fallback.name,
-    text: localized(review.text ?? fallback.text),
+    id: review.id ?? `review-${index + 1}`,
+    name: review.name ?? "",
+    text: localized(review.text ?? { en: "", ru: "" }),
+    rating: Number.isInteger(review.rating) && review.rating! >= 1 && review.rating! <= 5 ? review.rating! : null,
     order: review.order ?? index + 1,
     published: Boolean(review.published),
     createdAt: review.createdAt ?? new Date().toISOString(),

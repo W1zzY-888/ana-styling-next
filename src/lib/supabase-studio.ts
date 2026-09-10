@@ -156,14 +156,11 @@ async function uploadImageToBucket(file: File, folder: string, targetBucket: str
   return data.publicUrl;
 }
 
-export async function uploadReviewPhoto(file: File) {
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
-  if (file.size > 5 * 1024 * 1024 || !allowedTypes.includes(file.type)) return null;
-  return uploadImageToBucket(file, "reviews", "ana-styling-reviews");
-}
-
-export async function submitReview(review: { name: string; text: string; photoUrl?: string }) {
+export async function submitReview(review: { name: string; text: string; rating: number }) {
   if (!supabase) return { ok: false, message: "Review submission is not configured yet." };
+  if (!Number.isInteger(review.rating) || review.rating < 1 || review.rating > 5) {
+    return { ok: false, message: "Please select a rating from 1 to 5." };
+  }
 
   const { error } = await supabase
     .from("studio_reviews")
@@ -171,7 +168,7 @@ export async function submitReview(review: { name: string; text: string; photoUr
       studio_id: studioId,
       name: review.name,
       review_text: review.text,
-      photo_url: review.photoUrl || null,
+      rating: review.rating,
       published: false,
     });
 
@@ -188,7 +185,7 @@ export async function loadSubmittedReviews() {
 
   const { data, error } = await supabase
     .from("studio_reviews")
-    .select("id, name, review_text, photo_url, published, created_at")
+    .select("id, name, review_text, rating, published, created_at")
     .eq("studio_id", studioId)
     .order("created_at", { ascending: false });
 
@@ -201,14 +198,14 @@ export async function loadSubmittedReviews() {
     id: String(item.id),
     name: String(item.name ?? ""),
     text: { en: String(item.review_text ?? ""), ru: String(item.review_text ?? "") },
-    photo: item.photo_url ? String(item.photo_url) : undefined,
+    rating: Number.isInteger(item.rating) && item.rating >= 1 && item.rating <= 5 ? item.rating : null,
     order: index + 1,
     published: Boolean(item.published),
     createdAt: String(item.created_at ?? ""),
   }));
 }
 
-export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; photo?: string; published?: boolean }) {
+export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; published?: boolean }) {
   if (!supabase) return false;
 
   const { data: updated, error } = await supabase
@@ -216,7 +213,6 @@ export async function updateSubmittedReview(id: string, patch: { name?: string; 
     .update({
       ...(patch.name !== undefined ? { name: patch.name } : {}),
       ...(patch.text !== undefined ? { review_text: patch.text } : {}),
-      ...(patch.photo !== undefined ? { photo_url: patch.photo || null } : {}),
       ...(patch.published !== undefined ? { published: patch.published } : {}),
     })
     .eq("studio_id", studioId)

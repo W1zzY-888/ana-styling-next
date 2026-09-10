@@ -1,37 +1,7 @@
 begin;
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('ana-styling-reviews', 'ana-styling-reviews', true, 5242880,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'])
-on conflict (id) do update set
-  public = excluded.public,
-  file_size_limit = excluded.file_size_limit,
-  allowed_mime_types = excluded.allowed_mime_types;
-
+-- Review attachments are disabled; existing stored files are retained.
 drop policy if exists "Visitors can upload Ana Styling review photos" on storage.objects;
-create policy "Visitors can upload Ana Styling review photos"
-on storage.objects for insert to anon, authenticated
-with check (
-  bucket_id = 'ana-styling-reviews'
-  and (storage.foldername(name))[1] = 'reviews'
-);
-
-drop policy if exists "Public can read Ana Styling review photos" on storage.objects;
-create policy "Public can read Ana Styling review photos"
-on storage.objects for select to anon, authenticated
-using (bucket_id = 'ana-styling-reviews');
-
-drop policy if exists "Admins can manage Ana Styling review photos" on storage.objects;
-create policy "Admins can manage Ana Styling review photos"
-on storage.objects for all to authenticated
-using (
-  bucket_id = 'ana-styling-reviews'
-  and exists (select 1 from public.studio_admins where user_id = auth.uid())
-)
-with check (
-  bucket_id = 'ana-styling-reviews'
-  and exists (select 1 from public.studio_admins where user_id = auth.uid())
-);
 
 create table if not exists public.studio_reviews (
   id uuid primary key default gen_random_uuid(),
@@ -45,6 +15,24 @@ create table if not exists public.studio_reviews (
 );
 
 alter table public.studio_reviews enable row level security;
+
+alter table public.studio_reviews add column if not exists rating smallint;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.studio_reviews'::regclass
+      and conname = 'studio_reviews_rating_range'
+  ) then
+    alter table public.studio_reviews add constraint studio_reviews_rating_range
+      check (rating between 1 and 5);
+  end if;
+end $$;
+
+drop policy if exists "Review submissions require a rating" on public.studio_reviews;
+create policy "Review submissions require a rating"
+on public.studio_reviews as restrictive for insert to anon, authenticated
+with check (rating is not null and rating between 1 and 5 and photo_url is null);
 
 drop policy if exists "Public can read published Ana Styling reviews" on public.studio_reviews;
 create policy "Public can read published Ana Styling reviews"
@@ -114,4 +102,3 @@ grant select, insert on public.studio_reviews to anon, authenticated;
 grant update, delete on public.studio_reviews to authenticated;
 
 commit;
-
