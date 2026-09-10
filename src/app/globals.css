@@ -5917,9 +5917,9 @@ h3,
 }
 
 .admin-content .admin-update-button {
-  background: var(--wine);
+  background: var(--red);
   color: #fff;
-  border: 1px solid var(--wine);
+  border: 1px solid var(--red);
   border-radius: 4px;
   padding: 10px 20px;
   min-height: 44px;
@@ -5932,7 +5932,10 @@ h3,
 }
 
 .admin-content .admin-update-button:disabled {
-  opacity: 0.45;
+  background: #e2dcd5;
+  border-color: #c8bfb6;
+  color: #514940;
+  opacity: 1;
   cursor: default;
 }
 
