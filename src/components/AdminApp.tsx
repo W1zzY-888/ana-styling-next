@@ -101,6 +101,20 @@ async function fileToStudioUrl(file: File, folder: string) {
   return fileToDataUrl(file);
 }
 
+async function uploadPortfolioFiles(files: File[], folder: string) {
+  try {
+    return await Promise.all(files.map(async (file) => {
+      const url = isSupabaseConfigured ? await uploadStudioImage(file, folder) : await fileToDataUrl(file);
+      if (!url) throw new Error("Portfolio upload failed");
+      return url;
+    }));
+  } catch (error) {
+    console.error("Ana Styling could not upload portfolio photos.", error);
+    window.alert("Couldn’t upload photos. Please try again.");
+    return null;
+  }
+}
+
 function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -524,7 +538,8 @@ export function AdminApp() {
     if (!files.length) return;
 
     const id = createId("portfolio");
-    const urls = await Promise.all(files.map((file) => fileToStudioUrl(file, `portfolio/${id}`)));
+    const urls = await uploadPortfolioFiles(files, `portfolio/${id}`);
+    if (!urls) return;
     const images = files.map((file, index): PortfolioImage => ({
       id: createId(`${id}-photo-${index + 1}`),
       url: urls[index],
@@ -605,7 +620,8 @@ export function AdminApp() {
     if (!files.length) return;
     const item = data.portfolioItems.find((portfolioItem) => portfolioItem.id === id);
     const start = item?.images.length ?? 0;
-    const urls = await Promise.all(files.map((file) => fileToStudioUrl(file, `portfolio/${id}`)));
+    const urls = await uploadPortfolioFiles(files, `portfolio/${id}`);
+    if (!urls) return;
     const previews = files.map((file, index): PortfolioImage => ({
       id: createId(`${id}-photo-${index + 1}`),
       url: urls[index],
@@ -616,7 +632,17 @@ export function AdminApp() {
       size: index === 0 ? "Large" : "Medium",
     }));
 
-    updateItem(id, { images: [...(item?.images ?? []), ...previews] });
+    updateData((current) => ({
+      ...current,
+      portfolioItems: current.portfolioItems.map((entry) => entry.id === id ? {
+        ...entry,
+        images: [...entry.images, ...previews.map((image, index) => ({
+          ...image,
+          order: entry.images.length + index + 1,
+          isCover: entry.images.length === 0 && index === 0,
+        }))],
+      } : entry),
+    }));
     event.target.value = "";
   }
 
@@ -635,7 +661,9 @@ export function AdminApp() {
   async function replaceImage(itemId: string, imageId: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updateImage(itemId, imageId, { url: await fileToStudioUrl(file, `portfolio/${itemId}`), alt: file.name, hidden: false });
+    const urls = await uploadPortfolioFiles([file], `portfolio/${itemId}`);
+    if (!urls) return;
+    updateImage(itemId, imageId, { url: urls[0], alt: file.name, hidden: false });
     event.target.value = "";
   }
 

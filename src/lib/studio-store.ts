@@ -138,7 +138,7 @@ function normalizeService(service: Partial<Service>, index: number, refreshDefau
 }
 
 function normalizePortfolioItem(item: Partial<PortfolioItem>, index: number, refreshDefaultCopy = false): PortfolioItem {
-  const fallback = initialStudioData.portfolioItems[index] ?? initialStudioData.portfolioItems[0];
+  const fallback = initialStudioData.portfolioItems.find((entry) => entry.id === item.id) ?? initialStudioData.portfolioItems[index] ?? initialStudioData.portfolioItems[0];
   const copySource = refreshDefaultCopy && item.id === fallback.id ? fallback : item;
 
   return {
@@ -146,20 +146,8 @@ function normalizePortfolioItem(item: Partial<PortfolioItem>, index: number, ref
     ...item,
     title: localized(copySource.title ?? fallback.title),
     description: localized(copySource.description ?? fallback.description),
-    images: mergePortfolioImages(item.images, fallback.images),
+    images: item.images ?? (initialStudioData.portfolioItems.some((entry) => entry.id === item.id) ? fallback.images : []),
   };
-}
-
-function mergePortfolioImages(savedImages: PortfolioItem["images"] | undefined, fallbackImages: PortfolioItem["images"]) {
-  if (!savedImages?.length) return fallbackImages;
-
-  const existingIds = new Set(savedImages.map((image) => image.id));
-  const lastOrder = Math.max(0, ...savedImages.map((image) => image.order || 0));
-  const missingDefaults = fallbackImages
-    .filter((image) => !existingIds.has(image.id))
-    .map((image, index) => ({ ...image, order: lastOrder + index + 1 }));
-
-  return [...savedImages, ...missingDefaults];
 }
 
 function normalizePublication(publication: Partial<Publication>, index: number, refreshDefaultCopy = false): Publication {

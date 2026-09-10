@@ -5939,6 +5939,12 @@ h3,
   cursor: default;
 }
 
+.admin-content .upload-button {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+
 .admin-update-footer {
   display: flex;
   justify-content: flex-end;
