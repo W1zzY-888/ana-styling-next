@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, FormEvent, useEffect, useMemo, useState } from "react";
+import { type ReactNode, type ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   categoryLabels,
   initialStudioData,
@@ -8,16 +8,18 @@ import {
   type PortfolioCategory,
   type PortfolioItem,
   type Publication,
+  type Review,
   type Service,
   type ServiceGroup,
   type StudioData,
 } from "@/data/site";
 import { usePublicStudioData } from "@/hooks/usePublicStudioData";
 import { text } from "@/lib/i18n";
+import { submitReview, uploadReviewPhoto } from "@/lib/supabase-studio";
 
-type PublicPage = "home" | "services" | "portfolio" | "publications";
+type PublicPage = "home" | "services" | "portfolio" | "publications" | "reviews";
 
-const categories: Array<PortfolioCategory | "All"> = ["All", "Cover", "Editorial", "Campaign", "Studio", "Fashion"];
+const categories: PortfolioCategory[] = ["Cover", "Editorial", "Campaign", "Studio", "Fashion"];
 const serviceGroups: ServiceGroup[] = ["Personal Styling", "Commercial Styling"];
 const languageKey = "ana-styling-language";
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
@@ -44,7 +46,7 @@ const defaultSubjects: Record<Language, string> = {
 
 const dictionary = {
   en: {
-    nav: ["Home", "About", "Services", "Portfolio", "Publications", "Contact"],
+    nav: ["Home", "About", "Services", "Portfolio", "Publications", "Reviews", "Contact"],
     heroRole: "Personal Stylist — Miami",
     heroTitle: "Elevate Your Style",
     workWithAna: "Work with Ana",
@@ -62,6 +64,15 @@ const dictionary = {
     all: "All",
     viewProject: "View",
     publications: "Publications",
+    reviews: "Reviews",
+    readMore: "Read more",
+    showLess: "Show less",
+    reviewName: "Name",
+    reviewText: "Review text",
+    reviewPhoto: "Optional photo",
+    sendReview: "Submit review",
+    reviewThanks: "Thank you. Your review was sent for approval.",
+    reviewValidation: "Please add your name and review text.",
     contact: "Contact",
     contactLinks: "Contact links",
     firstName: "First Name",
@@ -83,7 +94,7 @@ const dictionary = {
     credit: "DESIGN & DEVELOPMENT — W1ZZYDEV",
   },
   ru: {
-    nav: ["Главная", "Обо мне", "Услуги", "Портфолио", "Публикации", "Контакты"],
+    nav: ["Главная", "Обо мне", "Услуги", "Портфолио", "Публикации", "Отзывы", "Контакты"],
     heroRole: "Персональный стилист — Майами",
     heroTitle: "Ваш стиль",
     workWithAna: "Работать с Ana",
@@ -101,6 +112,15 @@ const dictionary = {
     all: "Все",
     viewProject: "Смотреть",
     publications: "Публикации",
+    reviews: "Отзывы",
+    readMore: "Читать дальше",
+    showLess: "Свернуть",
+    reviewName: "Имя",
+    reviewText: "Текст отзыва",
+    reviewPhoto: "Фото по желанию",
+    sendReview: "Оставить отзыв",
+    reviewThanks: "Спасибо. Ваш отзыв отправлен на модерацию.",
+    reviewValidation: "Укажите имя и текст отзыва.",
     contact: "Контакты",
     contactLinks: "Ссылки для связи",
     firstName: "Имя",
@@ -129,12 +149,15 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
     return window.localStorage.getItem(languageKey) === "ru" ? "ru" : "en";
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [category, setCategory] = useState<PortfolioCategory | "All">("All");
-  const [showFullPortfolio, setShowFullPortfolio] = useState(page !== "home");
+  const [category, setCategory] = useState<PortfolioCategory>("Cover");
+  const [serviceGroup, setServiceGroup] = useState<ServiceGroup>("Personal Styling");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", service: "", message: "" });
+  const [reviewForm, setReviewForm] = useState({ name: "", text: "", photo: "" });
+  const [reviewPhotoFile, setReviewPhotoFile] = useState<File | null>(null);
+  const [reviewNote, setReviewNote] = useState("");
   const [formNote, setFormNote] = useState("");
   const [year] = useState(() => new Date().getFullYear());
   const { data, isLoading } = usePublicStudioData();
@@ -143,16 +166,18 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   const studioData = data ?? initialStudioData;
 
   const visibleServices = useMemo(() => studioData.services.filter((service) => service.published).sort((a, b) => a.order - b.order), [studioData.services]);
-  const featuredService = visibleServices.find((service) => service.group === "Personal Styling") ?? visibleServices[0];
+  const selectedServices = useMemo(() => visibleServices.filter((service) => service.group === serviceGroup), [serviceGroup, visibleServices]);
+  const featuredService = selectedServices.find((service) => service.id !== "event-styling") ?? selectedServices[0] ?? visibleServices[0];
   const visiblePortfolio = useMemo(
     () =>
       studioData.portfolioItems
         .filter((item) => item.published)
-        .filter((item) => category === "All" || item.category === category)
+        .filter((item) => item.category === category)
         .sort((a, b) => a.order - b.order),
     [category, studioData.portfolioItems],
   );
   const visiblePublications = useMemo(() => studioData.publications.filter((publication) => publication.published).sort((a, b) => a.order - b.order), [studioData.publications]);
+  const visibleReviews = useMemo(() => studioData.reviews.filter((review) => review.published).sort((a, b) => a.order - b.order), [studioData.reviews]);
   const galleryImages = useMemo(
     () => visiblePortfolio.flatMap((item) => item.images.filter((image) => !image.hidden).sort((a, b) => a.order - b.order).map((image) => ({ image, item }))),
     [visiblePortfolio],
@@ -177,21 +202,17 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   }
 
   function navHref(index: number) {
-    const ids = ["home", "about", "services", "portfolio", "publications", "contact"];
+    const ids = ["home", "about", "services", "portfolio", "publications", "reviews", "contact"];
     if (index === 2) return pageHref("/services/");
     if (index === 3) return pageHref("/portfolio/");
     if (index === 4) return pageHref("/publications/");
+    if (index === 5) return pageHref("/reviews/");
     return page === "home" ? `#${ids[index]}` : pageHref(`/#${ids[index]}`);
   }
 
   function selectService(service: Service) {
     setForm((current) => ({ ...current, service: service.id }));
     document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-  }
-
-  function openGalleryFromProject(item: PortfolioItem) {
-    const index = galleryImages.findIndex((entry) => entry.item.id === item.id);
-    if (index >= 0) setLightboxIndex(index);
   }
 
   function handleLightboxTouchEnd(position: number) {
@@ -240,6 +261,35 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
     window.open(`https://wa.me/${phoneDigits(studioData.content.contact.whatsappNumber)}?text=${encodeURIComponent(whatsappMessage())}`, "_blank", "noopener,noreferrer");
   }
 
+  async function handleReviewPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setReviewPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => setReviewForm((current) => ({ ...current, photo: String(reader.result) }));
+    reader.readAsDataURL(file);
+  }
+
+  async function submitReviewForm(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
+      setReviewNote(t.reviewValidation as string);
+      return;
+    }
+    const uploadedPhotoUrl = reviewPhotoFile ? await uploadReviewPhoto(reviewPhotoFile) : undefined;
+    const photoUrl = uploadedPhotoUrl || undefined;
+    if (reviewPhotoFile && !photoUrl) {
+      setReviewNote("Couldn’t upload photo. Please try again.");
+      return;
+    }
+    const result = await submitReview({ name: reviewForm.name.trim(), text: reviewForm.text.trim(), photoUrl });
+    setReviewNote(result.ok ? t.reviewThanks as string : result.message);
+    if (result.ok) {
+      setReviewForm({ name: "", text: "", photo: "" });
+      setReviewPhotoFile(null);
+    }
+  }
+
   if (!data) {
     return (
       <main className="public-site">
@@ -258,20 +308,18 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
         <>
           <Hero language={language} t={t} data={studioData} />
           <About language={language} t={t} data={studioData} />
-          {featuredService && <ServicesPreview labels={t} language={language} service={featuredService} onContact={selectService} />}
+          {featuredService && <ServicesPreview activeGroup={serviceGroup} labels={t} language={language} onContact={selectService} onGroupChange={setServiceGroup} service={featuredService} />}
           <PortfolioSection
             category={category}
             galleryImages={galleryImages}
             language={language}
             setCategory={setCategory}
             setLightboxIndex={setLightboxIndex}
-            setShowFullPortfolio={setShowFullPortfolio}
-            showFullPortfolio={showFullPortfolio}
             t={t}
             visiblePortfolio={visiblePortfolio}
-            openGalleryFromProject={openGalleryFromProject}
           />
           <PublicationsPreview language={language} publications={visiblePublications.slice(0, 2)} t={t} onOpen={setSelectedPublication} />
+          <ReviewsSection form={reviewForm} language={language} note={reviewNote} onPhotoChange={handleReviewPhoto} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />
         </>
       )}
       {page === "services" && (
@@ -280,9 +328,8 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
             <p className="eyebrow">{t.services as string}</p>
             <h2>{t.services as string}</h2>
           </div>
-          {serviceGroups.map((group) => (
-            <ServiceSection group={group} key={group} language={language} labels={t} onContact={selectService} services={visibleServices.filter((service) => service.group === group)} />
-          ))}
+          <ServiceGroupTabs activeGroup={serviceGroup} language={language} labels={t} onChange={setServiceGroup} />
+          <ServiceSection group={serviceGroup} language={language} labels={t} onContact={selectService} services={selectedServices} />
         </section>
       )}
       {page === "portfolio" && (
@@ -293,11 +340,8 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           language={language}
           setCategory={setCategory}
           setLightboxIndex={setLightboxIndex}
-          setShowFullPortfolio={setShowFullPortfolio}
-          showFullPortfolio
           t={t}
           visiblePortfolio={visiblePortfolio}
-          openGalleryFromProject={openGalleryFromProject}
         />
       )}
       {page === "publications" && (
@@ -317,7 +361,8 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
           </div>
         </section>
       )}
-      {page !== "publications" && page !== "portfolio" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={studioData} />}
+      {page === "reviews" && <ReviewsSection form={reviewForm} isFullPage language={language} note={reviewNote} onPhotoChange={handleReviewPhoto} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />}
+      {page !== "publications" && page !== "portfolio" && page !== "reviews" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={studioData} />}
       <Footer data={studioData} language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
         activeLightbox={activeLightbox}
@@ -381,6 +426,7 @@ function Hero({ data, language, t }: { data: StudioData; language: Language; t: 
 }
 
 function About({ data, language, t }: { data: StudioData; language: Language; t: Record<string, string | string[]> }) {
+  const [expanded, setExpanded] = useState(false);
   const aboutParagraphs = text(data.content.about.body, language).split("\n\n").filter(Boolean);
   const intro = aboutParagraphs.slice(0, 2).join(" ");
   const bodyParagraphs = aboutParagraphs.slice(2);
@@ -396,19 +442,41 @@ function About({ data, language, t }: { data: StudioData; language: Language; t:
       </div>
       <div className="about-body reveal">
         {intro && <p className="about-intro">{intro}</p>}
-        {bodyParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+        <div className={`about-more ${expanded ? "expanded" : ""}`} aria-hidden={!expanded}>
+          <div>
+            {bodyParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          </div>
+        </div>
+        {aboutParagraphs.length > 2 && (
+          <button className="read-more-link" type="button" onClick={() => setExpanded((value) => !value)}>
+            {expanded ? t.showLess as string : t.readMore as string} →
+          </button>
+        )}
       </div>
     </section>
   );
 }
 
-function ServicesPreview({ labels, language, onContact, service }: { labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; service: Service }) {
+function ServiceGroupTabs({ activeGroup, labels, onChange }: { activeGroup: ServiceGroup; language: Language; labels: Record<string, string | string[]>; onChange: (group: ServiceGroup) => void }) {
+  return (
+    <div className="service-group-tabs filters reveal" aria-label={labels.services as string}>
+      {serviceGroups.map((group) => (
+        <button className={activeGroup === group ? "active" : ""} key={group} type="button" onClick={() => onChange(group)}>
+          {group === "Personal Styling" ? labels.servicesTitle as string : labels.commercialTitle as string}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ServicesPreview({ activeGroup, labels, language, onContact, onGroupChange, service }: { activeGroup: ServiceGroup; labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; onGroupChange: (group: ServiceGroup) => void; service: Service }) {
   return (
     <section id="services" className="fashion-services services-preview-section">
       <div className="services-intro reveal">
         <p className="eyebrow">{labels.services as string}</p>
         <h2>{labels.services as string}</h2>
       </div>
+      <ServiceGroupTabs activeGroup={activeGroup} language={language} labels={labels} onChange={onGroupChange} />
       <article className="featured-service reveal">
         <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>
         <div>
@@ -452,15 +520,12 @@ function ServiceSection({ group, labels, language, onContact, services }: { grou
 }
 
 function PortfolioSection(props: {
-  category: PortfolioCategory | "All";
+  category: PortfolioCategory;
   galleryImages: Array<{ image: PortfolioItem["images"][number]; item: PortfolioItem }>;
   isFullPage?: boolean;
   language: Language;
-  openGalleryFromProject: (item: PortfolioItem) => void;
-  setCategory: (category: PortfolioCategory | "All") => void;
+  setCategory: (category: PortfolioCategory) => void;
   setLightboxIndex: (index: number) => void;
-  setShowFullPortfolio: (value: boolean) => void;
-  showFullPortfolio: boolean;
   t: Record<string, string | string[]>;
   visiblePortfolio: PortfolioItem[];
 }) {
@@ -472,21 +537,22 @@ function PortfolioSection(props: {
           <h2>{props.t.portfolio as string}</h2>
         </div>
       </div>
-      {!props.showFullPortfolio && (
+      {!props.isFullPage && (
         <div className="portfolio-preview reveal">
           {props.visiblePortfolio.slice(0, 2).map((item) => {
             const cover = getCoverImage(item);
-            return cover && <button key={item.id} type="button" onClick={() => props.openGalleryFromProject(item)}><img loading="lazy" src={assetSrc(cover.url)} alt={cover.alt || text(item.title, props.language)} /></button>;
+            const imageIndex = props.galleryImages.findIndex(({ image, item: galleryItem }) => galleryItem.id === item.id && image.id === cover?.id);
+            return cover && <button key={item.id} type="button" onClick={() => props.setLightboxIndex(Math.max(0, imageIndex))}><img loading="lazy" src={assetSrc(cover.url)} alt={cover.alt || text(item.title, props.language)} /></button>;
           })}
           <a className="portfolio-open" href={pageHref("/portfolio/")}>{props.t.viewPortfolio as string} →</a>
         </div>
       )}
-      {props.showFullPortfolio && (
+      {props.isFullPage && (
         <>
           <div className="filters reveal" aria-label={props.language === "en" ? "Portfolio categories" : "Категории портфолио"}>
             {categories.map((item) => (
               <button className={props.category === item ? "active" : ""} key={item} type="button" onClick={() => props.setCategory(item)}>
-                {item === "All" ? props.t.all as string : text(categoryLabels[item], props.language)}
+                {text(categoryLabels[item], props.language)}
               </button>
             ))}
           </div>
@@ -496,8 +562,6 @@ function PortfolioSection(props: {
                 <img loading="lazy" src={assetSrc(image.url)} alt={image.alt || text(item.title, props.language)} />
                 <div className="portfolio-overlay">
                   <span>{text(categoryLabels[item.category], props.language)}</span>
-                  <h3>{text(item.title, props.language)}</h3>
-                  <small>{props.t.viewProject as string} →</small>
                 </div>
               </button>
             ))}
@@ -524,6 +588,49 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
           </button>
         ))}
         <a className="section-link" href={pageHref("/publications/")}>{t.viewAllPublications as string} →</a>
+      </div>
+    </section>
+  );
+}
+
+function ReviewsSection({ form, isFullPage, language, note, onPhotoChange, reviews, setForm, submitReview, t }: {
+  form: { name: string; text: string; photo: string };
+  isFullPage?: boolean;
+  language: Language;
+  note: string;
+  onPhotoChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  reviews: Review[];
+  setForm: (form: { name: string; text: string; photo: string }) => void;
+  submitReview: (event: FormEvent<HTMLFormElement>) => void;
+  t: Record<string, string | string[]>;
+}) {
+  return (
+    <section id="reviews" className={isFullPage ? "reviews-section full-page-section" : "reviews-section"}>
+      <div className="portfolio-title-row reveal">
+        <div>
+          <p className="eyebrow">{t.reviews as string}</p>
+          <h2>{t.reviews as string}</h2>
+        </div>
+      </div>
+      <div className="reviews-layout">
+        <div className="reviews-grid">
+          {reviews.map((review) => (
+            <article className="review-card reveal" key={review.id}>
+              {review.photo && <img loading="lazy" src={assetSrc(review.photo)} alt="" />}
+              <div>
+                <h3>{review.name}</h3>
+                <p>{text(review.text, language)}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+        <form className="review-form contact-form reveal" onSubmit={submitReview} noValidate>
+          <label>{t.reviewName as string}<input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
+          <label>{t.reviewText as string}<textarea rows={5} value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
+          <label>{t.reviewPhoto as string}<input accept="image/*" type="file" onChange={onPhotoChange} /></label>
+          {note && <p className="form-note" role="status">{note}</p>}
+          <button className="stylist-cta whatsapp-cta" type="submit"><span>{t.sendReview as string}</span><b aria-hidden="true">→</b></button>
+        </form>
       </div>
     </section>
   );
@@ -570,6 +677,7 @@ function Footer({ data, language, nav, navHref, t, year }: { data: StudioData; l
         <a href={navHref(3)}>{nav[3]}</a>
         <a href={navHref(4)}>{nav[4]}</a>
         <a href={navHref(5)}>{nav[5]}</a>
+        <a href={navHref(6)}>{nav[6]}</a>
         <SocialLink kind="instagram" href={data.content.contact.instagramUrl} label="@aleynikovaa" compact />
         <SocialLink kind="whatsapp" href={`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}`} label="WhatsApp" compact />
       </nav>

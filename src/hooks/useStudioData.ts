@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type StudioData } from "@/data/site";
-import { loadStudioData, saveStudioData } from "@/lib/studio-store";
+import { loadStudioData, normalizeStudioData, saveStudioData } from "@/lib/studio-store";
 import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
 
 export type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -31,9 +31,10 @@ export function useStudioData() {
       const remote = await loadStudioDataFromSupabase();
 
       if (remote && isMounted && !hasLocalDraftRef.current) {
-        saveStudioData(remote.data);
-        setSavedData(remote.data);
-        setData(remote.data);
+        const normalized = normalizeStudioData(remote.data);
+        saveStudioData(normalized);
+        setSavedData(normalized);
+        setData(normalized);
         setSaveStatus("idle");
       }
 

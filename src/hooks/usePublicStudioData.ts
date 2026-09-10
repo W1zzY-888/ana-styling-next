@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { initialStudioData, type StudioData } from "@/data/site";
-import { isSupabaseConfigured, loadStudioDataFromSupabase } from "@/lib/supabase-studio";
+import { isSupabaseConfigured, loadStudioDataFromSupabase, loadSubmittedReviews } from "@/lib/supabase-studio";
 import { loadStudioData, normalizeStudioData } from "@/lib/studio-store";
 
 export function usePublicStudioData() {
@@ -20,9 +20,10 @@ export function usePublicStudioData() {
           return;
         }
 
-        const remote = await loadStudioDataFromSupabase();
+        const [remote, submittedReviews] = await Promise.all([loadStudioDataFromSupabase(), loadSubmittedReviews()]);
         if (isMounted) {
-          setData(remote ? normalizeStudioData(remote.data) : initialStudioData);
+          const normalized = remote ? normalizeStudioData(remote.data) : initialStudioData;
+          setData({ ...normalized, reviews: [...normalized.reviews, ...submittedReviews.filter((review) => review.published)] });
           setIsLoading(false);
         }
       } catch (error) {

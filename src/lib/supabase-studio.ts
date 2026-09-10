@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { type StudioData } from "@/data/site";
+import { type Review, type StudioData } from "@/data/site";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -133,11 +133,15 @@ export async function saveStudioDataToSupabase(data: StudioData): Promise<Studio
 }
 
 export async function uploadStudioImage(file: File, folder: string) {
+  return uploadImageToBucket(file, folder, bucketName);
+}
+
+async function uploadImageToBucket(file: File, folder: string, targetBucket: string) {
   if (!supabase) return null;
 
   const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${folder}/${crypto.randomUUID()}.${extension}`;
-  const { error } = await supabase.storage.from(bucketName).upload(path, file, {
+  const { error } = await supabase.storage.from(targetBucket).upload(path, file, {
     cacheControl: "31536000",
     upsert: false,
   });
@@ -147,6 +151,97 @@ export async function uploadStudioImage(file: File, folder: string) {
     return null;
   }
 
-  const { data } = supabase.storage.from(bucketName).getPublicUrl(path);
+  const { data } = supabase.storage.from(targetBucket).getPublicUrl(path);
   return data.publicUrl;
+}
+
+export async function uploadReviewPhoto(file: File) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+  if (file.size > 5 * 1024 * 1024 || !allowedTypes.includes(file.type)) return null;
+  return uploadImageToBucket(file, "reviews", "ana-styling-reviews");
+}
+
+export async function submitReview(review: { name: string; text: string; photoUrl?: string }) {
+  if (!supabase) return { ok: false, message: "Review submission is not configured yet." };
+
+  const { error } = await supabase
+    .from("studio_reviews")
+    .insert({
+      studio_id: studioId,
+      name: review.name,
+      review_text: review.text,
+      photo_url: review.photoUrl || null,
+      published: false,
+    });
+
+  if (error) {
+    console.error("Ana Styling could not submit review.", error);
+    return { ok: false, message: "Couldn’t send review. Please try again." };
+  }
+
+  return { ok: true, message: "Thank you. Your review was sent for approval." };
+}
+
+export async function loadSubmittedReviews() {
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from("studio_reviews")
+    .select("id, name, review_text, photo_url, published, created_at")
+    .eq("studio_id", studioId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Ana Styling could not load submitted reviews.", error);
+    return [];
+  }
+
+  return (data ?? []).map((item, index): Review => ({
+    id: String(item.id),
+    name: String(item.name ?? ""),
+    text: { en: String(item.review_text ?? ""), ru: String(item.review_text ?? "") },
+    photo: item.photo_url ? String(item.photo_url) : undefined,
+    order: index + 1,
+    published: Boolean(item.published),
+    createdAt: String(item.created_at ?? ""),
+  }));
+}
+
+export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; photo?: string; published?: boolean }) {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from("studio_reviews")
+    .update({
+      ...(patch.name !== undefined ? { name: patch.name } : {}),
+      ...(patch.text !== undefined ? { review_text: patch.text } : {}),
+      ...(patch.photo !== undefined ? { photo_url: patch.photo || null } : {}),
+      ...(patch.published !== undefined ? { published: patch.published } : {}),
+    })
+    .eq("studio_id", studioId)
+    .eq("id", id);
+
+  if (error) {
+    console.error("Ana Styling could not update submitted review.", error);
+    return false;
+  }
+
+  return true;
+}
+
+export async function deleteSubmittedReview(id: string) {
+  if (!supabase) return false;
+
+  const { error } = await supabase
+    .from("studio_reviews")
+    .delete()
+    .eq("studio_id", studioId)
+    .eq("id", id);
+
+  if (error) {
+    console.error("Ana Styling could not delete submitted review.", error);
+    return false;
+  }
+
+  return true;
 }

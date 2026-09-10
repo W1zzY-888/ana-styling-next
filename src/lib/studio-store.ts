@@ -1,4 +1,4 @@
-import { initialStudioData, type PortfolioItem, type Publication, type Service, type StudioData } from "@/data/site";
+import { initialStudioData, type PortfolioItem, type Publication, type Review, type Service, type StudioData } from "@/data/site";
 import { localized } from "@/lib/i18n";
 
 export const STUDIO_STORAGE_KEY = "ana-styling-studio-data";
@@ -72,12 +72,13 @@ export function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCo
         body: localized(value.content?.contact?.body ?? initialStudioData.content.contact.body),
         whatsappNumber: value.content?.contact?.whatsappNumber ?? initialStudioData.content.contact.whatsappNumber,
         instagramUrl: value.content?.contact?.instagramUrl ?? initialStudioData.content.contact.instagramUrl,
-        email: value.content?.contact?.email ?? initialStudioData.content.contact.email,
+        email: initialStudioData.content.contact.email,
       },
     },
     services: mergeServices(value.services, refreshDefaultCopy),
     portfolioItems: refreshDefaultCopy ? initialStudioData.portfolioItems : mergePortfolioItems(value.portfolioItems),
     publications: mergePublications(value.publications, refreshDefaultCopy),
+    reviews: mergeReviews(value.reviews),
   };
 }
 
@@ -145,8 +146,20 @@ function normalizePortfolioItem(item: Partial<PortfolioItem>, index: number, ref
     ...item,
     title: localized(copySource.title ?? fallback.title),
     description: localized(copySource.description ?? fallback.description),
-    images: item.images ?? fallback.images,
+    images: mergePortfolioImages(item.images, fallback.images),
   };
+}
+
+function mergePortfolioImages(savedImages: PortfolioItem["images"] | undefined, fallbackImages: PortfolioItem["images"]) {
+  if (!savedImages?.length) return fallbackImages;
+
+  const existingIds = new Set(savedImages.map((image) => image.id));
+  const lastOrder = Math.max(0, ...savedImages.map((image) => image.order || 0));
+  const missingDefaults = fallbackImages
+    .filter((image) => !existingIds.has(image.id))
+    .map((image, index) => ({ ...image, order: lastOrder + index + 1 }));
+
+  return [...savedImages, ...missingDefaults];
 }
 
 function normalizePublication(publication: Partial<Publication>, index: number, refreshDefaultCopy = false): Publication {
@@ -157,5 +170,24 @@ function normalizePublication(publication: Partial<Publication>, index: number, 
     ...fallback,
     ...publication,
     title: localized(copySource.title ?? fallback.title),
+  };
+}
+
+function mergeReviews(savedReviews?: Partial<Review>[]) {
+  if (!savedReviews?.length) return initialStudioData.reviews;
+  return savedReviews.map((review, index) => normalizeReview(review, index)).map((review, index) => ({ ...review, order: review.order || index + 1 }));
+}
+
+function normalizeReview(review: Partial<Review>, index: number): Review {
+  const fallback = initialStudioData.reviews[index] ?? initialStudioData.reviews[0];
+
+  return {
+    ...fallback,
+    ...review,
+    name: review.name ?? fallback.name,
+    text: localized(review.text ?? fallback.text),
+    order: review.order ?? index + 1,
+    published: Boolean(review.published),
+    createdAt: review.createdAt ?? new Date().toISOString(),
   };
 }

@@ -47,6 +47,16 @@ export type Publication = {
   published: boolean;
 };
 
+export type Review = {
+  id: string;
+  name: string;
+  text: LocalizedString;
+  photo?: string;
+  order: number;
+  published: boolean;
+  createdAt: string;
+};
+
 export type SiteContent = {
   homepage: {
     positioning: LocalizedString;
@@ -76,6 +86,7 @@ export type StudioData = {
   services: Service[];
   portfolioItems: PortfolioItem[];
   publications: Publication[];
+  reviews: Review[];
 };
 
 export const l = (en: string, ru: string): LocalizedString => ({ en, ru });
@@ -131,7 +142,7 @@ export const initialStudioData: StudioData = {
       ),
       whatsappNumber: "+1 310 804 0450",
       instagramUrl: "https://www.instagram.com/aleynikovaa",
-      email: "anastyling@gmail.com",
+      email: "anakstyling@gmail.com",
     },
   },
   services: [
@@ -283,7 +294,15 @@ export const initialStudioData: StudioData = {
       title: l("Editorial", "Эдиториал"),
       category: "Editorial",
       description: l("Editorial styling built around mood, proportion, and a precise visual story.", "Эдиториал-стайлинг вокруг настроения, пропорций и точной визуальной истории."),
-      images: [image("editorial-1", "/ana-photos/editorial.jpg", 1, true, "Large")],
+      images: [
+        image("editorial-1", "/ana-photos/editorial.jpg", 1, true, "Large"),
+        image("editorial-test-2", "/ana-photos/fashion.jpg", 2, false, "Medium"),
+        image("editorial-test-3", "/ana-photos/studio.jpg", 3, false, "Small"),
+        image("editorial-test-4", "/ana-photos/campaign.jpg", 4, false, "Medium"),
+        image("editorial-test-5", "/ana-photos/cover.png", 5, false, "Large"),
+        image("editorial-test-6", "/ana-photos/about-ana.jpg", 6, false, "Medium"),
+        image("editorial-test-7", "/ana-photos/local-preview/event-styling-original.png", 7, false, "Small"),
+      ],
       order: 2,
       published: true,
       featured: false,
@@ -333,6 +352,20 @@ export const initialStudioData: StudioData = {
       image: "/ana-photos/publication-marie-claire.png",
       order: 2,
       published: true,
+    },
+  ],
+  reviews: [
+    {
+      id: "review-1",
+      name: "Client",
+      text: l(
+        "Ana helped me see my wardrobe in a completely new way. Every look felt refined, practical, and very personal.",
+        "Ana помогла мне увидеть гардероб совершенно по-новому. Каждый образ получился продуманным, практичным и очень личным.",
+      ),
+      photo: "/ana-photos/about-ana.jpg",
+      order: 1,
+      published: true,
+      createdAt: "2026-01-01T00:00:00.000Z",
     },
   ],
 };

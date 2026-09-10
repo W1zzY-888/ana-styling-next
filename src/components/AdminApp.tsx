@@ -21,14 +21,15 @@ import {
   type PortfolioImageSize,
   type PortfolioItem,
   type Publication,
+  type Review,
   type Service,
   type ServiceGroup,
 } from "@/data/site";
 import { useStudioData } from "@/hooks/useStudioData";
 import { localized, text } from "@/lib/i18n";
-import { getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, signInAdmin, signOutAdmin, uploadStudioImage } from "@/lib/supabase-studio";
+import { deleteSubmittedReview, getAdminSession, isCurrentUserStudioAdmin, isSupabaseConfigured, loadSubmittedReviews, signInAdmin, signOutAdmin, updateSubmittedReview, uploadReviewPhoto, uploadStudioImage } from "@/lib/supabase-studio";
 
-type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Contact";
+type View = "Dashboard" | "Home" | "About" | "Services" | "Service Editor" | "Portfolio" | "Editor" | "Publications" | "Publication Editor" | "Reviews" | "Contact";
 type ConfirmAction = { title: string; body: string; action: () => void } | null;
 type LeavePrompt = { view: View } | null;
 
@@ -153,6 +154,7 @@ export function AdminApp() {
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(data.services[0]?.id ?? null);
   const [editingPublicationId, setEditingPublicationId] = useState<string | null>(data.publications[0]?.id ?? null);
+  const [submittedReviews, setSubmittedReviews] = useState<Review[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<{ itemId: string; imageId: string } | null>(null);
   const [mode, setMode] = useState<"Edit" | "Preview">("Edit");
   const [contentLanguage, setContentLanguage] = useState<Language>("en");
@@ -171,6 +173,7 @@ export function AdminApp() {
   const editingService = useMemo(() => data.services.find((service) => service.id === editingServiceId) ?? null, [data.services, editingServiceId]);
   const editingPublication = useMemo(() => data.publications.find((publication) => publication.id === editingPublicationId) ?? null, [data.publications, editingPublicationId]);
   const publications = useMemo(() => [...data.publications].sort((a, b) => a.order - b.order), [data.publications]);
+  const reviews = useMemo(() => [...data.reviews, ...submittedReviews].sort((a, b) => a.order - b.order), [data.reviews, submittedReviews]);
   const services = useMemo(() => [...data.services].sort((a, b) => a.order - b.order), [data.services]);
   const portfolioPhotos = useMemo(
     () => items.flatMap((item) => [...item.images].sort((a, b) => a.order - b.order).map((image) => ({ item, image }))),
@@ -201,6 +204,22 @@ export function AdminApp() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadReviews() {
+      if (!isSupabaseConfigured || !isUnlocked) return;
+      const nextReviews = await loadSubmittedReviews();
+      if (isMounted) setSubmittedReviews(nextReviews);
+    }
+
+    loadReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isUnlocked]);
 
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
@@ -257,6 +276,75 @@ export function AdminApp() {
       ...current,
       publications: current.publications.map((publication) => (publication.id === id ? { ...publication, ...patch } : publication)),
     }));
+  }
+
+  function updateReview(id: string, patch: Partial<Review>) {
+    updateData((current) => ({
+      ...current,
+      reviews: current.reviews.map((review) => (review.id === id ? { ...review, ...patch } : review)),
+    }));
+  }
+
+  function addReview() {
+    const id = createId("review");
+    updateData((current) => ({
+      ...current,
+      reviews: [
+        ...current.reviews,
+        {
+          id,
+          name: "Client",
+          text: { en: "New review", ru: "Новый отзыв" },
+          order: current.reviews.length + 1,
+          published: false,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }));
+    setActive("Reviews");
+  }
+
+  async function updateReviewPhoto(review: Review, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const photo = await uploadReviewPhoto(file);
+    if (!photo) return;
+
+    if (data.reviews.some((item) => item.id === review.id)) {
+      updateReview(review.id, { photo });
+    } else {
+      await updateSubmittedReview(review.id, { photo });
+      setSubmittedReviews((current) => current.map((item) => (item.id === review.id ? { ...item, photo } : item)));
+    }
+
+    event.target.value = "";
+  }
+
+  async function toggleReview(review: Review) {
+    const published = !review.published;
+    if (data.reviews.some((item) => item.id === review.id)) {
+      updateReview(review.id, { published });
+      return;
+    }
+
+    const saved = await updateSubmittedReview(review.id, { published });
+    if (saved) setSubmittedReviews((current) => current.map((item) => (item.id === review.id ? { ...item, published } : item)));
+  }
+
+  async function removeReview(review: Review) {
+    setConfirm({
+      title: "Delete this review?",
+      body: "This removes the review from the studio.",
+      action: () => {
+        if (data.reviews.some((item) => item.id === review.id)) {
+          updateData((current) => ({ ...current, reviews: current.reviews.filter((item) => item.id !== review.id).map((item, index) => ({ ...item, order: index + 1 })) }));
+        } else {
+          deleteSubmittedReview(review.id).then((deleted) => {
+            if (deleted) setSubmittedReviews((current) => current.filter((item) => item.id !== review.id));
+          });
+        }
+      },
+    });
   }
 
   function moveService(id: string, direction: -1 | 1) {
@@ -343,6 +431,12 @@ export function AdminApp() {
     const publication = data.publications.find((publicationItem) => publicationItem.id === id);
     if (!publication) return;
     updatePublication(id, { title: { ...localized(publication.title), [language]: value } });
+  }
+
+  function updateLocalizedReview(id: string, language: Language, value: string) {
+    const review = data.reviews.find((reviewItem) => reviewItem.id === id);
+    if (!review) return;
+    updateReview(id, { text: { ...localized(review.text), [language]: value } });
   }
 
   function updateContentField(section: "homepage" | "about" | "contact", field: string, language: Language, value: string) {
@@ -618,7 +712,7 @@ export function AdminApp() {
           <p className="eyebrow">ANA STYLING</p>
           <h1>Studio</h1>
         </div>
-        {(["Dashboard", "Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((item) => (
+        {(["Dashboard", "Home", "About", "Services", "Portfolio", "Publications", "Reviews", "Contact"] as View[]).map((item) => (
           <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => navigateTo(item)}>
             {item}
           </button>
@@ -645,10 +739,10 @@ export function AdminApp() {
               <a className="button primary" href={previewHref} target="_blank" rel="noreferrer">Preview website</a>
             </div>
             <div className="cms-section-grid">
-              {(["Home", "About", "Services", "Portfolio", "Publications", "Contact"] as View[]).map((section) => (
+              {(["Home", "About", "Services", "Portfolio", "Publications", "Reviews", "Contact"] as View[]).map((section) => (
                 <button className="cms-section-card" key={section} type="button" onClick={() => navigateTo(section)}>
                   <span>{section}</span>
-                  <small>{section === "Portfolio" ? `${portfolioPhotos.length} photos` : section === "Services" ? `${services.length} services` : section === "Publications" ? `${publications.length} covers` : "Edit section"}</small>
+                  <small>{section === "Portfolio" ? `${portfolioPhotos.length} photos` : section === "Services" ? `${services.length} services` : section === "Publications" ? `${publications.length} covers` : section === "Reviews" ? `${reviews.length} reviews` : "Edit section"}</small>
                 </button>
               ))}
             </div>
@@ -899,6 +993,46 @@ export function AdminApp() {
           </div>
         )}
 
+        {active === "Reviews" && (
+          <div className="admin-view">
+            <div className="admin-heading">
+              <div><p className="eyebrow">Reviews</p><h2>Client reviews</h2></div>
+              <button className="button primary" type="button" onClick={addReview}>Add Review</button>
+            </div>
+            <LanguageTabs language={contentLanguage} onChange={setContentLanguage} />
+            <div className="cms-card-grid reviews-admin-grid">
+              {reviews.map((review) => {
+                const isManual = data.reviews.some((item) => item.id === review.id);
+
+                return (
+                  <article className="cms-item-card review-admin-card" key={review.id}>
+                    {review.photo ? <img src={assetSrc(review.photo)} alt="" /> : <div className="review-photo-placeholder">Review</div>}
+                    <div className="review-admin-fields">
+                      {isManual ? (
+                        <>
+                          <label>Name<input value={review.name} onChange={(event) => updateReview(review.id, { name: event.target.value })} /></label>
+                          <label>Text {contentLanguage.toUpperCase()}<textarea rows={4} value={text(review.text, contentLanguage)} onChange={(event) => updateLocalizedReview(review.id, contentLanguage, event.target.value)} /></label>
+                        </>
+                      ) : (
+                        <>
+                          <strong>{review.name}</strong>
+                          <p>{text(review.text, contentLanguage)}</p>
+                        </>
+                      )}
+                      <small>{review.published ? "Visible on website" : "Hidden / pending"}</small>
+                    </div>
+                    <div className="admin-card-actions">
+                      <label>Photo<input type="file" accept="image/*" onChange={(event) => updateReviewPhoto(review, event)} /></label>
+                      <button type="button" onClick={() => toggleReview(review)}>{review.published ? "Hide" : "Publish"}</button>
+                      <button type="button" onClick={() => removeReview(review)}>Delete</button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </section>
 
       {confirm && (
@@ -934,7 +1068,7 @@ export function AdminApp() {
 
       {isMoreOpen && (
         <div className="admin-more-sheet">
-          {(["Dashboard", "About", "Publications", "Contact"] as View[]).map((item) => (
+          {(["Dashboard", "About", "Publications", "Reviews", "Contact"] as View[]).map((item) => (
             <button className={active === item ? "active" : ""} key={item} type="button" onClick={() => navigateTo(item)}>{item}</button>
           ))}
           <a href={previewHref} target="_blank" rel="noreferrer">Preview website</a>
