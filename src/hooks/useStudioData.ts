@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type StudioData } from "@/data/site";
+import { initialStudioData, type StudioData } from "@/data/site";
 import { jsonEqual } from "@/lib/json-equal";
 import { loadStudioData, normalizeStudioData, saveStudioData } from "@/lib/studio-store";
 import { loadStudioDataFromSupabase, saveStudioDataToSupabase } from "@/lib/supabase-studio";
@@ -13,8 +13,8 @@ function sameStudioData(a: StudioData, b: StudioData) {
 }
 
 export function useStudioData() {
-  const [data, setData] = useState<StudioData>(() => loadStudioData());
-  const [savedData, setSavedData] = useState<StudioData>(() => loadStudioData());
+  const [data, setData] = useState<StudioData>(initialStudioData);
+  const [savedData, setSavedData] = useState<StudioData>(initialStudioData);
   const [saveError, setSaveError] = useState("");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -30,9 +30,9 @@ export function useStudioData() {
       setIsSyncing(true);
       const remote = await loadStudioDataFromSupabase();
 
-      if (remote && isMounted && !hasLocalDraftRef.current) {
-        const normalized = normalizeStudioData(remote.data);
-        saveStudioData(normalized);
+      if (isMounted && !hasLocalDraftRef.current) {
+        const normalized = remote ? normalizeStudioData(remote.data) : loadStudioData();
+        if (remote) saveStudioData(normalized);
         setSavedData(normalized);
         setData(normalized);
         setSaveStatus("idle");

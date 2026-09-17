@@ -72,7 +72,7 @@ export function normalizeStudioData(value: Partial<StudioData>, refreshDefaultCo
         body: localized(value.content?.contact?.body ?? initialStudioData.content.contact.body),
         whatsappNumber: value.content?.contact?.whatsappNumber ?? initialStudioData.content.contact.whatsappNumber,
         instagramUrl: value.content?.contact?.instagramUrl ?? initialStudioData.content.contact.instagramUrl,
-        email: initialStudioData.content.contact.email,
+        email: value.content?.contact?.email ?? initialStudioData.content.contact.email,
       },
     },
     services: mergeServices(value.services, refreshDefaultCopy),
@@ -132,6 +132,8 @@ function normalizeService(service: Partial<Service>, index: number, refreshDefau
     description: localized(copySource.description ?? fallback.description),
     deliverables: (copySource.deliverables ?? fallback.deliverables).map(localized),
     group: service.group ?? fallback.group,
+    // Remove only bundled service stand-ins; preserve client uploads and empty images.
+    image: /^\/ana-photos\/(fashion\.jpg|editorial\.jpg|studio\.jpg|campaign\.jpg|cover\.png)$/.test(service.image ?? "") ? "" : service.image ?? "",
     price: copySource.price || fallback.price ? localized(copySource.price ?? fallback.price ?? "") : undefined,
     note: copySource.note || fallback.note ? localized(copySource.note ?? fallback.note ?? "") : undefined,
   };

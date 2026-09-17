@@ -93,12 +93,16 @@ async function fileToDataUrl(file: File) {
 }
 
 async function fileToStudioUrl(file: File, folder: string) {
-  if (isSupabaseConfigured) {
+  try {
+    if (!isSupabaseConfigured) return await fileToDataUrl(file);
     const remoteUrl = await uploadStudioImage(file, folder);
-    if (remoteUrl) return remoteUrl;
+    if (!remoteUrl) throw new Error("Storage upload failed");
+    return remoteUrl;
+  } catch (error) {
+    console.error("Ana Styling could not upload image.", error);
+    window.alert("Couldn’t upload image. Your current image has not changed. Please try again.");
+    return null;
   }
-
-  return fileToDataUrl(file);
 }
 
 async function uploadPortfolioFiles(files: File[], folder: string) {
@@ -162,7 +166,8 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 }
 
 export function AdminApp() {
-  const [isUnlocked, setIsUnlocked] = useState(() => (typeof window === "undefined" || isSupabaseConfigured ? false : window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked"));
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [uploadingServiceId, setUploadingServiceId] = useState<string | null>(null);
   const { data, hasUnsavedChanges, saveChanges, saveError, saveStatus, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
@@ -201,8 +206,11 @@ export function AdminApp() {
     let isMounted = true;
 
     async function unlockFromSupabaseSession() {
-      if (!isSupabaseConfigured) return;
       const session = await getAdminSession();
+      if (!isSupabaseConfigured) {
+        if (isMounted) setIsUnlocked(window.sessionStorage.getItem(ADMIN_SESSION_KEY) === "unlocked");
+        return;
+      }
       const isAdmin = session ? await isCurrentUserStudioAdmin() : false;
 
       if (session && isAdmin && isMounted) {
@@ -235,14 +243,14 @@ export function AdminApp() {
   }, [isUnlocked]);
 
   useEffect(() => {
-    if (!hasUnsavedChanges) return;
+    if (!hasUnsavedChanges && !uploadingServiceId) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, uploadingServiceId]);
 
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
@@ -381,7 +389,7 @@ export function AdminApp() {
           deliverables: [],
           group: "Personal Styling",
           price: { en: "", ru: "" },
-          image: placeholderImage,
+          image: "",
           order: current.services.length + 1,
           published: false,
         },
@@ -465,6 +473,7 @@ export function AdminApp() {
     const file = event.target.files?.[0];
     if (!file) return;
     const url = await fileToStudioUrl(file, "hero");
+    if (!url) return;
 
     updateData((current) => ({
       ...current,
@@ -670,15 +679,23 @@ export function AdminApp() {
   async function replacePublicationImage(id: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    updatePublication(id, { image: await fileToStudioUrl(file, "publications") });
+    const url = await fileToStudioUrl(file, "publications");
+    if (!url) return;
+    updatePublication(id, { image: url });
     event.target.value = "";
   }
 
   async function replaceServiceImage(id: string, event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file) return;
-    updateService(id, { image: await fileToStudioUrl(file, `services/${id}`) });
-    event.target.value = "";
+    if (!file || uploadingServiceId) return;
+    setUploadingServiceId(id);
+    try {
+      const url = await fileToStudioUrl(file, `services/${id}`);
+      if (url) updateService(id, { image: url });
+    } finally {
+      setUploadingServiceId(null);
+      event.target.value = "";
+    }
   }
 
   function deleteImage(itemId: string, image: PortfolioImage) {
@@ -739,7 +756,7 @@ export function AdminApp() {
       <section className="admin-content">
         <div className={`admin-save-status ${saveStatus}`}>
           <span>{saveStatus === "dirty" ? "Unsaved changes" : saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
-          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null} onClick={() => saveChanges()}>
             {saveStatus === "saving" ? "Обновление…" : "Обновить"}
           </button>
           <a href={previewHref} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
@@ -930,7 +947,7 @@ export function AdminApp() {
             <div className="cms-card-grid">
               {services.map((service) => (
                 <article className="cms-item-card" key={service.id}>
-                  <img src={assetSrc(service.image)} alt="" />
+                  {service.image && <img src={assetSrc(service.image)} alt="" />}
                   <div>
                     <strong>{text(service.title, contentLanguage)}</strong>
                     <span>{service.price ? text(service.price, contentLanguage) : "No price"}</span>
@@ -958,7 +975,12 @@ export function AdminApp() {
           <div className="admin-view simple-editor-view">
             <div className="admin-heading service-editor-heading"><button className="back-link-button" type="button" onClick={() => navigateTo("Services")}>← Services</button><div><p className="eyebrow">Service</p><h2>{text(editingService.title, contentLanguage)}</h2></div><LanguageTabs language={contentLanguage} onChange={setContentLanguage} /></div>
             <section className="editor-form editor-panel compact-panel">
-              <div className="service-image-editor"><img src={assetSrc(editingService.image)} alt="" /><label className="image-replace-button">Replace image<input type="file" accept="image/*" onChange={(event) => replaceServiceImage(editingService.id, event)} /></label></div>
+              <div className="service-image-editor">
+                {editingService.image && <img src={assetSrc(editingService.image)} alt="" />}
+                <label className="image-replace-button">{editingService.image ? "Replace image" : "Upload image"}<input type="file" accept="image/*" disabled={uploadingServiceId !== null || saveStatus === "saving"} onChange={(event) => replaceServiceImage(editingService.id, event)} /></label>
+                {editingService.image && <button className="image-replace-button" type="button" disabled={uploadingServiceId !== null || saveStatus === "saving"} onClick={() => updateService(editingService.id, { image: "" })}>Delete image</button>}
+              </div>
+              {uploadingServiceId && <p role="status">Uploading image…</p>}
               <label>Name<input value={text(editingService.title, contentLanguage)} onChange={(event) => updateLocalizedService(editingService.id, "title", contentLanguage, event.target.value)} /></label>
               <label>Description<textarea value={text(editingService.description, contentLanguage)} rows={5} onChange={(event) => updateLocalizedService(editingService.id, "description", contentLanguage, event.target.value)} /></label>
               <label>Price<input value={editingService.price ? text(editingService.price, contentLanguage) : ""} onChange={(event) => updateService(editingService.id, { price: { ...localized(editingService.price ?? ""), [contentLanguage]: event.target.value } })} /></label>
@@ -1046,7 +1068,7 @@ export function AdminApp() {
         )}
 
         <div className="admin-update-footer">
-          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving"} onClick={() => saveChanges()}>
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null} onClick={() => saveChanges()}>
             {saveStatus === "saving" ? "Обновление…" : "Обновить"}
           </button>
         </div>

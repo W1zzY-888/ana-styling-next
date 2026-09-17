@@ -6888,3 +6888,62 @@ section[id],
 .reviews-admin-view .button.primary { background: var(--red); color: #fff; }
 .review-admin-card .admin-card-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .review-admin-card .admin-card-actions button { min-height: 44px; padding: 10px 16px; }
+
+/* Direct portfolio gallery: natural proportions and admin-controlled sizes. */
+.portfolio-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(18px, 2vw, 28px);
+}
+
+.portfolio-photo {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  grid-column: span 2;
+  min-width: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.portfolio-photo.tile-small { grid-column: span 1; }
+.portfolio-photo.tile-large { grid-column: span 3; }
+
+.portfolio-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.public-site .featured-service.service-without-image,
+.public-site .runway-service.service-without-image {
+  grid-template-columns: 1fr !important;
+}
+
+.public-site .service-without-image > div {
+  grid-column: 1 !important;
+  grid-row: auto !important;
+  max-width: 900px;
+}
+
+.service-contact-link {
+  border-bottom: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  min-height: 44px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1024px) {
+  .portfolio-photo-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .portfolio-photo.tile-small { grid-column: span 2; }
+  .portfolio-photo.tile-large { grid-column: span 4; }
+}
+
+@media (max-width: 640px) {
+  .portfolio-photo-grid { grid-template-columns: 1fr; }
+  .portfolio-photo-grid .portfolio-photo { grid-column: 1; }
+}

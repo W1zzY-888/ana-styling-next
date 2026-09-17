@@ -150,10 +150,15 @@ const dictionary = {
 } satisfies Record<Language, Record<string, string | string[]>>;
 
 export function PublicSite({ page = "home" }: { page?: PublicPage }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    if (typeof window === "undefined") return "en";
-    return window.localStorage.getItem(languageKey) === "ru" ? "ru" : "en";
-  });
+  const [language, setLanguage] = useState<Language>("en");
+
+  useEffect(() => {
+    async function restoreLanguage() {
+      const savedLanguage = await Promise.resolve(window.localStorage.getItem(languageKey));
+      setLanguage(savedLanguage === "ru" ? "ru" : "en");
+    }
+    void restoreLanguage();
+  }, []);
   const [menuOpen, setMenuOpen] = useState(false);
   const [category, setCategory] = useState<PortfolioCategory>("Cover");
   const [serviceGroup, setServiceGroup] = useState<ServiceGroup>("Personal Styling");
@@ -308,7 +313,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
         <>
           <Hero language={language} t={t} data={studioData} />
           <About language={language} t={t} data={studioData} />
-          {featuredService && <ServicesPreview activeGroup={serviceGroup} labels={t} language={language} onContact={selectService} onGroupChange={setServiceGroup} service={featuredService} />}
+          {featuredService && <ServicesPreview email={studioData.content.contact.email} activeGroup={serviceGroup} labels={t} language={language} onContact={selectService} onGroupChange={setServiceGroup} service={featuredService} />}
           <PortfolioSection
             category={category}
             galleryImages={galleryImages}
@@ -329,7 +334,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
             <h2>{t.services as string}</h2>
           </div>
           <ServiceGroupTabs activeGroup={serviceGroup} language={language} labels={t} onChange={setServiceGroup} />
-          <ServiceSection group={serviceGroup} language={language} labels={t} onContact={selectService} services={selectedServices} />
+          <ServiceSection email={studioData.content.contact.email} group={serviceGroup} language={language} labels={t} onContact={selectService} services={selectedServices} />
         </section>
       )}
       {page === "portfolio" && (
@@ -469,7 +474,7 @@ function ServiceGroupTabs({ activeGroup, labels, onChange }: { activeGroup: Serv
   );
 }
 
-function ServicesPreview({ activeGroup, labels, language, onContact, onGroupChange, service }: { activeGroup: ServiceGroup; labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; onGroupChange: (group: ServiceGroup) => void; service: Service }) {
+function ServicesPreview({ email, activeGroup, labels, language, onContact, onGroupChange, service }: { email: string; activeGroup: ServiceGroup; labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; onGroupChange: (group: ServiceGroup) => void; service: Service }) {
   return (
     <section id="services" className="fashion-services services-preview-section">
       <div className="services-intro reveal">
@@ -477,14 +482,14 @@ function ServicesPreview({ activeGroup, labels, language, onContact, onGroupChan
         <h2>{labels.services as string}</h2>
       </div>
       <ServiceGroupTabs activeGroup={activeGroup} language={language} labels={labels} onChange={onGroupChange} />
-      <article className="featured-service reveal">
-        <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>
+      <article className={`featured-service reveal${service.image ? "" : " service-without-image"}`}>
+        {service.image && <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>}
         <div>
           <span>01</span>
           <h3>{text(service.title, language)}</h3>
           <p>{text(service.description, language)}</p>
           {service.price && <strong>{text(service.price, language)}</strong>}
-          <button type="button" onClick={() => onContact(service)}>{labels.bookAction as string} →</button>
+          {service.group === "Commercial Styling" ? <a className="service-contact-link" href={`mailto:${email}`}>{labels.contactAction as string} →</a> : <button type="button" onClick={() => onContact(service)}>{labels.bookAction as string} →</button>}
         </div>
       </article>
       <a className="section-link" href={pageHref("/services/")}>{labels.viewAllServices as string} →</a>
@@ -492,7 +497,7 @@ function ServicesPreview({ activeGroup, labels, language, onContact, onGroupChan
   );
 }
 
-function ServiceSection({ group, labels, language, onContact, services }: { group: ServiceGroup; labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; services: Service[] }) {
+function ServiceSection({ email, group, labels, language, onContact, services }: { email: string; group: ServiceGroup; labels: Record<string, string | string[]>; language: Language; onContact: (service: Service) => void; services: Service[] }) {
   if (!services.length) return null;
   const title = group === "Personal Styling" ? labels.servicesTitle : labels.commercialTitle;
 
@@ -501,15 +506,15 @@ function ServiceSection({ group, labels, language, onContact, services }: { grou
       <h3>{title as string}</h3>
       <div className="services-runway">
         {services.map((service, index) => (
-          <article className="runway-service reveal" key={service.id}>
+          <article className={`runway-service reveal${service.image ? "" : " service-without-image"}`} key={service.id}>
             <span>{String(index + 1).padStart(2, "0")}</span>
-            <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>
+            {service.image && <figure><img loading="lazy" src={assetSrc(service.image)} alt="" /></figure>}
             <div>
               <h4>{text(service.title, language)}</h4>
               <p>{text(service.description, language)}</p>
               {service.price && <strong>{text(service.price, language)}</strong>}
               {service.note && <em>{text(service.note, language)}</em>}
-              <button type="button" onClick={() => onContact(service)}>{labels.contactAction as string} →</button>
+              {service.group === "Commercial Styling" ? <a className="service-contact-link" href={`mailto:${email}`}>{labels.contactAction as string} →</a> : <button type="button" onClick={() => onContact(service)}>{labels.contactAction as string} →</button>}
             </div>
           </article>
         ))}
@@ -551,18 +556,15 @@ function PortfolioSection(props: {
         <>
           <div className="filters reveal" aria-label={props.language === "en" ? "Portfolio categories" : "Категории портфолио"}>
             {categories.map((item) => (
-              <button className={props.category === item ? "active" : ""} key={item} type="button" onClick={() => props.setCategory(item)}>
+              <button className={props.category === item ? "active" : ""} key={item} type="button" aria-pressed={props.category === item} onClick={() => props.setCategory(item)}>
                 {text(categoryLabels[item], props.language)}
               </button>
             ))}
           </div>
-          <div className="portfolio-grid safe-editorial-grid">
+          <div className="portfolio-photo-grid">
             {props.galleryImages.map(({ image, item }, index) => (
-              <button className="portfolio-tile reveal" key={`${item.id}-${image.id}`} type="button" onClick={() => props.setLightboxIndex(index)}>
+              <button className={`portfolio-photo tile-${image.size.toLowerCase()} reveal`} key={`${item.id}-${image.id}`} type="button" onClick={() => props.setLightboxIndex(index)}>
                 <img loading="lazy" src={assetSrc(image.url)} alt={image.alt || text(item.title, props.language)} />
-                <div className="portfolio-overlay">
-                  <span>{text(categoryLabels[item.category], props.language)}</span>
-                </div>
               </button>
             ))}
           </div>
@@ -644,6 +646,7 @@ function Contact({ data, form, formNote, language, services, setForm, submitCont
           <span>{language === "en" ? "Miami" : "Майами"}</span>
           <SocialLink kind="instagram" href={data.content.contact.instagramUrl} label="@aleynikovaa" />
           <SocialLink kind="whatsapp" href={`https://wa.me/${phoneDigits(data.content.contact.whatsappNumber)}`} label="WhatsApp" />
+          <SocialLink kind="email" href={`mailto:${data.content.contact.email}`} label="Email" />
         </div>
       </div>
       <form className="contact-form reveal" onSubmit={submitContact} noValidate>
@@ -749,13 +752,17 @@ function LanguageSwitcher({ language, onChange }: { language: Language; onChange
   );
 }
 
-function SocialLink({ compact, href, kind, label }: { compact?: boolean; href: string; kind: "instagram" | "whatsapp"; label: string }) {
+function SocialLink({ compact, href, kind, label }: { compact?: boolean; href: string; kind: "instagram" | "whatsapp" | "email"; label: string }) {
   return (
-    <a className={compact ? "social-button compact" : "social-button"} href={href} target="_blank" rel="noreferrer" aria-label={label}>
-      {kind === "instagram" ? <InstagramIcon /> : <WhatsAppIcon />}
+    <a className={compact ? "social-button compact" : "social-button"} href={href} target={kind === "email" ? undefined : "_blank"} rel={kind === "email" ? undefined : "noreferrer"} aria-label={label}>
+      {kind === "instagram" ? <InstagramIcon /> : kind === "whatsapp" ? <WhatsAppIcon /> : <EmailIcon />}
       <span>{label}</span>
     </a>
   );
+}
+
+function EmailIcon() {
+  return <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 6 9 7 9-7" /></svg>;
 }
 
 function InstagramIcon() {
