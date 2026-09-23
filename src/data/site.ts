@@ -49,6 +49,7 @@ export type Publication = {
 
 export type Review = {
   id: string;
+  photoUrl?: string;
   name: string;
   text: LocalizedString;
   rating: number | null;

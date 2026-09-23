@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Cormorant_Garamond, Manrope } from "next/font/google";
 import "./globals.css";
+import { isPreviewSite, siteUrl } from "@/lib/seo";
 
 const bodyFont = Manrope({
   variable: "--font-body",
@@ -20,8 +21,9 @@ const condensedFont = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "Ana Styling | Miami Personal Stylist",
-  description: "Premium personal styling, wardrobe edits, editorial direction, and WhatsApp booking for Ana Styling in Miami.",
+  metadataBase: siteUrl,
+  applicationName: "ANA STYLING",
+  robots: { index: !isPreviewSite, follow: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

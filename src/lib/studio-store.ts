@@ -171,6 +171,7 @@ function mergeReviews(savedReviews?: Partial<Review>[]) {
 function normalizeReview(review: Partial<Review>, index: number): Review {
   return {
     id: review.id ?? `review-${index + 1}`,
+    photoUrl: typeof review.photoUrl === "string" ? review.photoUrl : "",
     name: review.name ?? "",
     text: localized(review.text ?? { en: "", ru: "" }),
     rating: Number.isInteger(review.rating) && review.rating! >= 1 && review.rating! <= 5 ? review.rating! : null,

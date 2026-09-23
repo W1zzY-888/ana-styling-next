@@ -40,7 +40,7 @@ const placeholderImage = "/ana-photos/about-ana.jpg";
 const adminLanguages: Language[] = ["en", "ru"];
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 const pageHref = (path: string) => `${basePath}${path}`;
-const previewHref = "https://w1zzy-888.github.io/ana-styling-next/";
+const previewHref = pageHref("/");
 const assetSrc = (src: string) => (src.startsWith("/") ? `${basePath}${src}` : src);
 const ADMIN_SESSION_KEY = "ana-styling-admin-session";
 
@@ -168,6 +168,7 @@ function AdminLogin({ onUnlock }: { onUnlock: () => void }) {
 export function AdminApp() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [uploadingServiceId, setUploadingServiceId] = useState<string | null>(null);
+  const [uploadingReviewId, setUploadingReviewId] = useState<string | null>(null);
   const { data, hasUnsavedChanges, saveChanges, saveError, saveStatus, updateData } = useStudioData();
   const [active, setActive] = useState<View>("Dashboard");
   const [editingId, setEditingId] = useState<string | null>(data.portfolioItems[0]?.id ?? null);
@@ -243,14 +244,14 @@ export function AdminApp() {
   }, [isUnlocked]);
 
   useEffect(() => {
-    if (!hasUnsavedChanges && !uploadingServiceId) return;
+    if (!hasUnsavedChanges && !uploadingServiceId && !uploadingReviewId) return;
     const warnBeforeLeaving = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", warnBeforeLeaving);
     return () => window.removeEventListener("beforeunload", warnBeforeLeaving);
-  }, [hasUnsavedChanges, uploadingServiceId]);
+  }, [hasUnsavedChanges, uploadingServiceId, uploadingReviewId]);
 
   if (!isUnlocked) {
     return <AdminLogin onUnlock={() => setIsUnlocked(true)} />;
@@ -320,6 +321,51 @@ export function AdminApp() {
       ],
     }));
     setActive("Reviews");
+  }
+
+  async function setReviewPhoto(review: Review, photoUrl: string) {
+    if (data.reviews.some((item) => item.id === review.id)) {
+      updateReview(review.id, { photoUrl });
+      return;
+    }
+    const saved = await updateSubmittedReview(review.id, { photoUrl });
+    if (!saved) window.alert("Couldn’t save photo. Please try again.");
+    else setSubmittedReviews((current) => current.map((item) => item.id === review.id ? { ...item, photoUrl } : item));
+  }
+
+  async function replaceReviewPhoto(review: Review, event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file || uploadingReviewId) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      window.alert(contentLanguage === "ru" ? "Выберите JPG, PNG или WebP размером до 10 МБ." : "Choose a JPG, PNG or WebP image up to 10 MB.");
+      input.value = "";
+      return;
+    }
+    setUploadingReviewId(review.id);
+    try {
+      const url = await fileToStudioUrl(file, `reviews/${review.id}`);
+      if (url) await setReviewPhoto(review, url);
+    } catch (error) {
+      console.error("Ana Styling could not save review photo.", error);
+      window.alert("Couldn’t save photo. Please try again.");
+    } finally {
+      setUploadingReviewId(null);
+      input.value = "";
+    }
+  }
+
+  async function removeReviewPhoto(review: Review) {
+    if (uploadingReviewId) return;
+    setUploadingReviewId(review.id);
+    try {
+      await setReviewPhoto(review, "");
+    } catch (error) {
+      console.error("Ana Styling could not remove review photo.", error);
+      window.alert("Couldn’t remove photo. Please try again.");
+    } finally {
+      setUploadingReviewId(null);
+    }
   }
 
   async function toggleReview(review: Review) {
@@ -756,7 +802,7 @@ export function AdminApp() {
       <section className="admin-content">
         <div className={`admin-save-status ${saveStatus}`}>
           <span>{saveStatus === "dirty" ? "Unsaved changes" : saveStatus === "saving" ? "Saving…" : saveStatus === "saved" ? "Saved" : saveStatus === "error" ? saveError || "Couldn’t save — Retry" : "Ready"}</span>
-          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null} onClick={() => saveChanges()}>
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null || uploadingReviewId !== null} onClick={() => saveChanges()}>
             {saveStatus === "saving" ? "Обновление…" : "Обновить"}
           </button>
           <a href={previewHref} target="_blank" rel="noreferrer">{saveStatus === "saved" ? "View change" : "Preview website"}</a>
@@ -1054,11 +1100,22 @@ export function AdminApp() {
                           <p>{text(review.text, contentLanguage)}</p>
                         </>
                       )}
+                      <div className="review-photo-editor">
+                        {review.photoUrl && <img className="review-photo" src={review.photoUrl} alt={contentLanguage === "ru" ? "Фото к отзыву" : "Review photo"} />}
+                        <label className="image-replace-button">
+                          {contentLanguage === "ru" ? (review.photoUrl ? "Заменить фото" : "Загрузить фото") : (review.photoUrl ? "Replace photo" : "Upload photo")}
+                          <input type="file" accept="image/jpeg,image/png,image/webp" disabled={uploadingReviewId !== null || saveStatus === "saving"} onChange={(event) => replaceReviewPhoto(review, event)} />
+                        </label>
+                        {review.photoUrl && <button type="button" className="image-replace-button" disabled={uploadingReviewId !== null || saveStatus === "saving"} onClick={() => removeReviewPhoto(review)}>{contentLanguage === "ru" ? "Удалить фото" : "Delete photo"}</button>}
+                        <small>{contentLanguage === "ru" ? "JPG, PNG, WebP · до 10 МБ" : "JPG, PNG, WebP · up to 10 MB"}</small>
+                        <small>{contentLanguage === "ru" ? (isManual ? "После изменений нажмите «Обновить»." : "Изменения фото сохраняются автоматически.") : (isManual ? "Click Update to save your changes." : "Photo changes are saved automatically.")}</small>
+                        {uploadingReviewId === review.id && <p role="status">{contentLanguage === "ru" ? "Сохранение фото…" : "Saving photo…"}</p>}
+                      </div>
                       <small>{review.published ? "Visible on website" : "Hidden / pending"}</small>
                     </div>
                     <div className="admin-card-actions">
-                      <button type="button" onClick={() => toggleReview(review)}>{review.published ? "Hide" : "Publish"}</button>
-                      <button type="button" onClick={() => removeReview(review)}>Delete</button>
+                      <button type="button" disabled={uploadingReviewId === review.id} onClick={() => toggleReview(review)}>{review.published ? "Hide" : "Publish"}</button>
+                      <button type="button" disabled={uploadingReviewId === review.id} onClick={() => removeReview(review)}>Delete</button>
                     </div>
                   </article>
                 );
@@ -1068,7 +1125,7 @@ export function AdminApp() {
         )}
 
         <div className="admin-update-footer">
-          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null} onClick={() => saveChanges()}>
+          <button className="admin-update-button" type="button" disabled={!hasUnsavedChanges || saveStatus === "saving" || uploadingServiceId !== null || uploadingReviewId !== null} onClick={() => saveChanges()}>
             {saveStatus === "saving" ? "Обновление…" : "Обновить"}
           </button>
         </div>

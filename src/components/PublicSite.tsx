@@ -149,19 +149,23 @@ const dictionary = {
   },
 } satisfies Record<Language, Record<string, string | string[]>>;
 
-export function PublicSite({ page = "home" }: { page?: PublicPage }) {
-  const [language, setLanguage] = useState<Language>("en");
+export function PublicSite({ page = "home", initialData = initialStudioData, initialServiceGroup = "Personal Styling", initialLanguage }: { page?: PublicPage; initialData?: StudioData; initialServiceGroup?: ServiceGroup; initialLanguage?: Language }) {
+  const [language, setLanguage] = useState<Language>(initialLanguage ?? "en");
 
   useEffect(() => {
+    if (initialLanguage) {
+      window.localStorage.setItem(languageKey, initialLanguage);
+      return;
+    }
     async function restoreLanguage() {
       const savedLanguage = await Promise.resolve(window.localStorage.getItem(languageKey));
       setLanguage(savedLanguage === "ru" ? "ru" : "en");
     }
     void restoreLanguage();
-  }, []);
+  }, [initialLanguage]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [category, setCategory] = useState<PortfolioCategory>("Cover");
-  const [serviceGroup, setServiceGroup] = useState<ServiceGroup>("Personal Styling");
+  const [serviceGroup, setServiceGroup] = useState<ServiceGroup>(initialServiceGroup);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -172,7 +176,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   const [reviewNote, setReviewNote] = useState("");
   const [formNote, setFormNote] = useState("");
   const [year] = useState(() => new Date().getFullYear());
-  const { data, isLoading } = usePublicStudioData();
+  const { data, isLoading } = usePublicStudioData(initialData);
   const t = dictionary[language];
   const nav = t.nav as string[];
   const studioData = data ?? initialStudioData;
@@ -297,7 +301,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
 
   if (!data) {
     return (
-      <main className="public-site">
+      <main className="public-site" lang={language}>
         <SiteHeader changeLanguage={changeLanguage} language={language} menuOpen={menuOpen} nav={nav} navHref={navHref} setMenuOpen={setMenuOpen} />
         <section className="public-loading" aria-busy={isLoading}>
           <p>ANA STYLING</p>
@@ -307,7 +311,7 @@ export function PublicSite({ page = "home" }: { page?: PublicPage }) {
   }
 
   return (
-    <main className="public-site">
+    <main className="public-site" lang={language}>
       <SiteHeader nav={nav} navHref={navHref} language={language} changeLanguage={changeLanguage} menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       {page === "home" && (
         <>

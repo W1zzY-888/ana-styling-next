@@ -32,9 +32,13 @@ jobs:
         run: |
           test -n "$NEXT_PUBLIC_SUPABASE_URL" || { echo "Missing NEXT_PUBLIC_SUPABASE_URL"; exit 1; }
           test -n "$NEXT_PUBLIC_SUPABASE_ANON_KEY" || { echo "Missing NEXT_PUBLIC_SUPABASE_ANON_KEY"; exit 1; }
+          if [ "$NEXT_PUBLIC_SITE_URL" = "https://w1zzy-888.github.io/ana-styling-next/" ]; then
+            export NEXT_PUBLIC_BASE_PATH="${NEXT_PUBLIC_BASE_PATH:-/ana-styling-next}"
+          fi
           npm run build
         env:
-          NEXT_PUBLIC_BASE_PATH: /ana-styling-next
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://w1zzy-888.github.io/ana-styling-next/' }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET: ana-styling-media

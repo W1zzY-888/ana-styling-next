@@ -185,7 +185,7 @@ export async function loadSubmittedReviews() {
 
   const { data, error } = await supabase
     .from("studio_reviews")
-    .select("id, name, review_text, rating, published, created_at")
+    .select("id, name, review_text, rating, photo_url, published, created_at")
     .eq("studio_id", studioId)
     .order("created_at", { ascending: false });
 
@@ -197,6 +197,7 @@ export async function loadSubmittedReviews() {
   return (data ?? []).map((item, index): Review => ({
     id: String(item.id),
     name: String(item.name ?? ""),
+    photoUrl: typeof item.photo_url === "string" ? item.photo_url : "",
     text: { en: String(item.review_text ?? ""), ru: String(item.review_text ?? "") },
     rating: Number.isInteger(item.rating) && item.rating >= 1 && item.rating <= 5 ? item.rating : null,
     order: index + 1,
@@ -205,7 +206,7 @@ export async function loadSubmittedReviews() {
   }));
 }
 
-export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; published?: boolean }) {
+export async function updateSubmittedReview(id: string, patch: { name?: string; text?: string; published?: boolean; photoUrl?: string }) {
   if (!supabase) return false;
 
   const { data: updated, error } = await supabase
@@ -213,11 +214,12 @@ export async function updateSubmittedReview(id: string, patch: { name?: string; 
     .update({
       ...(patch.name !== undefined ? { name: patch.name } : {}),
       ...(patch.text !== undefined ? { review_text: patch.text } : {}),
+      ...(patch.photoUrl !== undefined ? { photo_url: patch.photoUrl || null } : {}),
       ...(patch.published !== undefined ? { published: patch.published } : {}),
     })
     .eq("studio_id", studioId)
     .eq("id", id)
-    .select("id")
+    .select("id, photo_url")
     .single();
 
   if (error) {
@@ -225,7 +227,7 @@ export async function updateSubmittedReview(id: string, patch: { name?: string; 
     return false;
   }
 
-  return updated?.id === id;
+  return updated?.id === id && (patch.photoUrl === undefined || (updated.photo_url ?? "") === patch.photoUrl);
 }
 
 export async function deleteSubmittedReview(id: string) {

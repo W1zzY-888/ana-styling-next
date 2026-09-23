@@ -22,6 +22,9 @@ function ReviewEntry({ review, language }: { review: Review; language: Language 
           }).format(date)}
         </time>}
       </div>
+      {review.photoUrl && <a className="review-photo-link" href={review.photoUrl} target="_blank" rel="noopener noreferrer" aria-label={language === "ru" ? `Открыть фото к отзыву ${review.name}` : `Open photo attached to ${review.name}'s review`}>
+        <img className="review-photo" src={review.photoUrl} loading="lazy" alt={language === "ru" ? `Фото к отзыву ${review.name}` : `Photo attached to ${review.name}'s review`} />
+      </a>}
       <ReviewRating value={review.rating} language={language} />
       <p className={!expanded && isLong ? "review-body is-collapsed" : "review-body"}>{body}</p>
       {isLong && <button className="review-read-more" type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>

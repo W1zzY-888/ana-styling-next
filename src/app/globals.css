@@ -6947,3 +6947,17 @@ section[id],
   .portfolio-photo-grid { grid-template-columns: 1fr; }
   .portfolio-photo-grid .portfolio-photo { grid-column: 1; }
 }
+
+/* Optional review attachment; preserve the uploaded photo's proportions. */
+.review-photo-link { display: block; margin: 18px 0; }
+.review-card .review-photo,
+.review-photo-editor .review-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  object-position: left center;
+}
+.review-photo-editor { display: grid; gap: 8px; min-width: 0; }
+.review-photo-editor input[type="file"] { max-width: 100%; }

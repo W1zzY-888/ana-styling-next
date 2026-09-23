@@ -5,8 +5,8 @@ import { initialStudioData, type StudioData } from "@/data/site";
 import { isSupabaseConfigured, loadStudioDataFromSupabase, loadSubmittedReviews } from "@/lib/supabase-studio";
 import { loadStudioData, normalizeStudioData } from "@/lib/studio-store";
 
-export function usePublicStudioData() {
-  const [data, setData] = useState<StudioData | null>(() => (isSupabaseConfigured ? null : initialStudioData));
+export function usePublicStudioData(initialData: StudioData = initialStudioData) {
+  const [data, setData] = useState<StudioData>(initialData);
   const [isLoading, setIsLoading] = useState(isSupabaseConfigured);
 
   useEffect(() => {
@@ -25,18 +25,20 @@ export function usePublicStudioData() {
 
         const [remote, submittedReviews] = await Promise.all([loadStudioDataFromSupabase(), loadSubmittedReviews()]);
         if (isMounted) {
-          const normalized = remote ? normalizeStudioData(remote.data) : initialStudioData;
+          if (!remote) return;
+          const normalized = normalizeStudioData(remote.data);
           setData({ ...normalized, reviews: [...normalized.reviews, ...submittedReviews.filter((review) => review.published)] });
           setIsLoading(false);
         }
       } catch (error) {
         console.error("Ana Styling could not load public studio data.", error);
         if (isMounted) {
-          setData(initialStudioData);
+          // Keep the last known public snapshot during transient network failures.
           setIsLoading(false);
         }
       } finally {
         isRefreshing = false;
+        if (isMounted) setIsLoading(false);
       }
     }
 
