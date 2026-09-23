@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { validateReviewPhoto } from "@/lib/review-photo";
 import { jsonEqual } from "@/lib/json-equal";
 import { type Review, type StudioData } from "@/data/site";
 
@@ -156,15 +157,30 @@ async function uploadImageToBucket(file: File, folder: string, targetBucket: str
   return data.publicUrl;
 }
 
-export async function submitReview(review: { name: string; text: string; rating: number }) {
+export async function submitReview(review: { name: string; text: string; rating: number; photo?: File }): Promise<{ ok: boolean; message: string; photoError?: "format" | "size" | "upload" }> {
   if (!supabase) return { ok: false, message: "Review submission is not configured yet." };
   if (!Number.isInteger(review.rating) || review.rating < 1 || review.rating > 5) {
     return { ok: false, message: "Please select a rating from 1 to 5." };
   }
 
+  const id = crypto.randomUUID();
+  let photoUrl: string | null = null;
+  if (review.photo) {
+    const invalid = validateReviewPhoto(review.photo);
+    if (invalid) return { ok: false, message: "Invalid photo.", photoError: invalid };
+    try {
+      photoUrl = await uploadStudioImage(review.photo, `reviews/${id}`);
+    } catch {
+      return { ok: false, message: "Photo upload failed.", photoError: "upload" };
+    }
+    if (!photoUrl) return { ok: false, message: "Photo upload failed.", photoError: "upload" };
+  }
+
   const { error } = await supabase
     .from("studio_reviews")
     .insert({
+      id,
+      photo_url: photoUrl,
       studio_id: studioId,
       name: review.name,
       review_text: review.text,

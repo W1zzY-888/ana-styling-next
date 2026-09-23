@@ -17,6 +17,8 @@ import { usePublicStudioData } from "@/hooks/usePublicStudioData";
 import { text } from "@/lib/i18n";
 import { submitReview } from "@/lib/supabase-studio";
 import { ReviewRating } from "@/components/ReviewRating";
+import { ReviewPhotoInput, type SelectedReviewPhoto } from "@/components/ReviewPhotoInput";
+import { reviewPhotoMessages } from "@/lib/review-photo";
 import { ReviewsList } from "@/components/ReviewsList";
 
 type PublicPage = "home" | "services" | "portfolio" | "publications" | "reviews";
@@ -171,6 +173,7 @@ export function PublicSite({ page = "home", initialData = initialStudioData, ini
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [form, setForm] = useState({ firstName: "", lastName: "", service: "", message: "" });
   const [reviewForm, setReviewForm] = useState({ name: "", text: "", rating: 0 });
+  const [reviewPhoto, setReviewPhoto] = useState<SelectedReviewPhoto | null>(null);
   const [reviewSending, setReviewSending] = useState(false);
   const reviewSendingRef = useRef(false);
   const [reviewNote, setReviewNote] = useState("");
@@ -288,9 +291,12 @@ export function PublicSite({ page = "home", initialData = initialStudioData, ini
     setReviewSending(true);
     setReviewNote("");
     try {
-      const result = await submitReview({ name: reviewForm.name.trim(), text: reviewForm.text.trim(), rating: reviewForm.rating });
-      setReviewNote((result.ok ? t.reviewThanks : t.reviewError) as string);
-      if (result.ok) setReviewForm({ name: "", text: "", rating: 0 });
+      const result = await submitReview({ name: reviewForm.name.trim(), text: reviewForm.text.trim(), rating: reviewForm.rating, photo: reviewPhoto?.file });
+      setReviewNote((result.ok ? t.reviewThanks : result.photoError ? reviewPhotoMessages[language][result.photoError] : t.reviewError) as string);
+      if (result.ok) {
+        setReviewForm({ name: "", text: "", rating: 0 });
+        setReviewPhoto(null);
+      }
     } catch {
       setReviewNote(t.reviewError as string);
     } finally {
@@ -328,7 +334,7 @@ export function PublicSite({ page = "home", initialData = initialStudioData, ini
             visiblePortfolio={visiblePortfolio}
           />
           <PublicationsPreview language={language} publications={visiblePublications.slice(0, 2)} t={t} onOpen={setSelectedPublication} />
-          <ReviewsSection form={reviewForm} language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />
+          <ReviewsSection photo={reviewPhoto} setPhoto={setReviewPhoto} form={reviewForm} language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />
         </>
       )}
       {page === "services" && (
@@ -370,7 +376,7 @@ export function PublicSite({ page = "home", initialData = initialStudioData, ini
           </div>
         </section>
       )}
-      {page === "reviews" && <ReviewsSection form={reviewForm} isFullPage language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />}
+      {page === "reviews" && <ReviewsSection photo={reviewPhoto} setPhoto={setReviewPhoto} form={reviewForm} isFullPage language={language} note={reviewNote} sending={reviewSending} reviews={visibleReviews} setForm={setReviewForm} submitReview={submitReviewForm} t={t} />}
       {page !== "publications" && page !== "portfolio" && page !== "reviews" && <Contact form={form} formNote={formNote} language={language} services={visibleServices} setForm={setForm} submitContact={submitContact} t={t} data={studioData} />}
       <Footer data={studioData} language={language} nav={nav} navHref={navHref} t={t} year={year} />
       <Overlays
@@ -599,7 +605,9 @@ function PublicationsPreview({ language, onOpen, publications, t }: { language: 
   );
 }
 
-function ReviewsSection({ form, isFullPage, language, note, sending, reviews, setForm, submitReview, t }: {
+function ReviewsSection({ photo, setPhoto, form, isFullPage, language, note, sending, reviews, setForm, submitReview, t }: {
+  photo: SelectedReviewPhoto | null;
+  setPhoto: (photo: SelectedReviewPhoto | null) => void;
   form: { name: string; text: string; rating: number };
   isFullPage?: boolean;
   language: Language;
@@ -625,6 +633,7 @@ function ReviewsSection({ form, isFullPage, language, note, sending, reviews, se
             <ReviewRating value={form.rating} language={language} onChange={(rating) => setForm({ ...form, rating })} />
             <label>{t.reviewName as string}<input autoComplete="name" maxLength={100} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
             <label>{t.reviewText as string}<textarea rows={5} maxLength={3000} value={form.text} onChange={(event) => setForm({ ...form, text: event.target.value })} /></label>
+            <ReviewPhotoInput photo={photo} onChange={setPhoto} language={language} />
           </fieldset>
           {note && <p className="form-note" role="status">{note}</p>}
           <button className="stylist-cta whatsapp-cta" type="submit" disabled={sending}><span>{(sending ? t.reviewSending : t.sendReview) as string}</span><b aria-hidden="true">→</b></button>
